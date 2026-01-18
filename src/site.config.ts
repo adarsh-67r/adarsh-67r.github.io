@@ -153,7 +153,7 @@ const config: SiteConfig = {
   socialLinks: {
     github: 'https://github.com/adarsh-67r',
     // mastodon: '',
-    email: 'adarsh.67r@gmail.com',
+    email: 'mailto:adarsh.67r@gmail.com',
     linkedin: 'https://www.linkedin.com/in/adarsh67',
     // bluesky: '',
     // twitter: '',
