@@ -7,11 +7,11 @@ const config: SiteConfig = {
   title: 'Adarsh',
   // The description of your site, used for SEO and RSS feed.
   description:
-    "Adarsh's personal blog and portfolio",
+    "Adarsh's personal blog",
   // The author of the site, used in the footer, SEO, and RSS feed.
   author: 'Adarsh',
   // Keywords for SEO, used in the meta tags.
-  tags: ['Astro', 'Student', 'Productivity', 'Portfolio', 'Blog'],
+  tags: ['Astro', 'Student', 'Productivity', 'Blog'],
   // Path to the image used for generating social media previews.
   // Needs to be a square JPEG file due to limitations of the social card generator.
   // Try https://squoosh.app/ to easily convert images to JPEG.
