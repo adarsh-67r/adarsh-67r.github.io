@@ -218,7 +218,7 @@ const height = labelHeight + (blockSize + blockMargin) * 7 - blockMargin
   class="w-max max-w-full flex flex-col gap-2 text-sm"
 >
   <div
-    id="github-activity-scroll"
+
     class="max-w-full overflow-x-auto pt-0.5"
     style={{
       // Don't cover the calendar with the scrollbar.
@@ -306,13 +306,3 @@ const height = labelHeight + (blockSize + blockMargin) * 7 - blockMargin
     )
   }
 </article>
-
-<script>
-  // Scroll GitHub activity calendar to latest (rightmost) on load
-  requestAnimationFrame(() => {
-    const el = document.getElementById('github-activity-scroll')
-    if (el) {
-      el.scrollLeft = el.scrollWidth
-    }
-  })
-</script>
