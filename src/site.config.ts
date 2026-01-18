@@ -7,7 +7,7 @@ const config: SiteConfig = {
   title: 'Adarsh',
   // The description of your site, used for SEO and RSS feed.
   description:
-    'Adarsh's personal blog and portfolio',
+    "Adarsh's personal blog and portfolio",
   // The author of the site, used in the footer, SEO, and RSS feed.
   author: 'Adarsh',
   // Keywords for SEO, used in the meta tags.
@@ -154,7 +154,7 @@ const config: SiteConfig = {
     github: 'https://github.com/adarsh-67r',
     // mastodon: '',
     email: 'adarsh.67r@gmail.com',
-    linkedin: 'www.linkedin.com/in/adarsh67',
+    linkedin: 'https://www.linkedin.com/in/adarsh67',
     // bluesky: '',
     // twitter: '',
     rss: true, // Set to true to include an RSS feed link in the footer
