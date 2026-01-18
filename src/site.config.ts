@@ -171,6 +171,7 @@ const config: SiteConfig = {
     category: 'Giscus',
     categoryId: 'DIC_kwDOQ8F2Xc4C1Gn4',
     reactionsEnabled: true, // Enable reactions on post itself
+    theme: 'catppuccin_mocha',
   },
   // These are characters available for the character chat feature.
   // To add your own character, add an image file to the top-level `/public` directory
