@@ -5,4 +5,4 @@ avatarImage:
 githubCalendar: 'adarsh-67r'
 ---
 
-Hey there! I’m a 20-year-old student exploring programming and problem-solving, with a growing interest in competitive programming. This website is where I share my projects, learning experiences, and small write-ups on things I find useful along the way.
+Notes, thoughts, and small write-ups on things I’m learning and thinking about.

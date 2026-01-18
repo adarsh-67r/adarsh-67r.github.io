@@ -3,4 +3,7 @@ layout: '~/layouts/MarkdownLayout.astro'
 title: About Me
 ---
 
-Hey there! I’m a 20-year-old student exploring programming and problem-solving, with a growing interest in competitive programming. This website is where I share my projects, learning experiences, and small write-ups on things I find useful along the way.
+I’m Adarsh, a student at NIT Rourkela.
+I’m interested in programming and problem-solving, and I’m a Linux enthusiast.
+This blog is where I write notes, thoughts, and things I find interesting, not limited to tech.
+Outside of that, I enjoy music, anime, and reading web novels and manhwa.
