@@ -166,7 +166,7 @@ const config: SiteConfig = {
   // IMPORTANT: Update giscus.json in the root of the project with your own website URL
   // If you don't want to use Giscus, set this to undefined.
   giscus: {
-    repo: 'adarsh-67r/website',
+    repo: 'adarsh-67r/adarsh-67r.github.io',
     repoId: 'R_kgDOQ8F2XQ',
     category: 'Giscus',
     categoryId: 'DIC_kwDOQ8F2Xc4C1Gn4',
