@@ -137,8 +137,7 @@ export default function Hero() {
             marginBottom: "36px",
           }}
         >
-          Student at NIT Rourkela. I write notes, build things, and think out
-          loud on this site.
+          Hello World!
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
