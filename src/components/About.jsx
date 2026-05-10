@@ -54,29 +54,29 @@ function InlineCommand({ cmd = "whoami", speed = 120, pause = 1400 }) {
   }, [cmd, displayed, erasing, speed, pause]);
 
   return (
-    <div style={{
+    <p style={{
       fontFamily: "var(--font-mono)",
       color: "var(--accent)",
       fontSize: "0.8rem",
       marginBottom: "8px",
       letterSpacing: "0.05em",
-      opacity: 0.6,
-      height: "1.2em",
       display: "flex",
       alignItems: "center",
+      gap: "4px",
+      userSelect: "none",
     }}>
-      <span style={{ marginRight: "6px" }}>$</span>
-      <span>{displayed}</span>
+      <span style={{ opacity: 0.5 }}>$</span>
+      <span> {displayed}</span>
       <span style={{
         display: "inline-block",
-        width: "2px",
+        width: "7px",
         height: "1em",
         background: "var(--accent)",
-        marginLeft: "3px",
-        animation: "whoBlink 1s step-end infinite",
+        verticalAlign: "text-bottom",
+        animation: "blink 1s step-end infinite",
+        borderRadius: "1px",
       }} />
-      <style>{`@keyframes whoBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
-    </div>
+    </p>
   );
 }
 
@@ -89,7 +89,6 @@ function FastFetchTerminal() {
   const [rmDisplayed, setRmDisplayed] = useState("");
   const [glitch, setGlitch] = useState(false);
   const [destroyed, setDestroyed] = useState(false);
-  // 0 = fully wiped, 1 = fully visible — controls ENTIRE inner content
   const [termOpacity, setTermOpacity] = useState(1);
   const timers = useRef([]);
 
@@ -144,12 +143,9 @@ function FastFetchTerminal() {
     }
 
     if (phase === "destroying") {
-      // Glitch flashes
       const flashes = [0, 80, 160, 240, 320, 400];
       flashes.forEach((t, idx) => delay(() => setGlitch(idx % 2 === 0), t));
-      // Fade out the ENTIRE terminal content (dots, prompt, output, rm row)
       delay(() => setTermOpacity(0), 80);
-      // After fade, mark destroyed so "terminal closed" can appear
       delay(() => { setGlitch(false); setDestroyed(true); }, 520);
       delay(() => setPhase("typing"), 2000);
     }
@@ -172,7 +168,6 @@ function FastFetchTerminal() {
       transition: "border-color 0.1s",
       position: "relative",
     }}>
-      {/* "terminal closed" shown after full wipe */}
       <div style={{
         position: "absolute",
         inset: 0,
@@ -188,7 +183,6 @@ function FastFetchTerminal() {
         <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4, fontFamily: "'Fira Code',monospace" }}>terminal closed</span>
       </div>
 
-      {/* Entire terminal content — fades out as one unit on destroy */}
       <div style={{
         padding: "18px 22px",
         background: glitch ? "#f38ba8" : "var(--surface)",
@@ -203,14 +197,12 @@ function FastFetchTerminal() {
         display: "flex",
         flexDirection: "column",
       }}>
-        {/* macOS dots */}
         <div style={{ display: "flex", gap: "6px", marginBottom: "14px", flexShrink: 0 }}>
           {["#f38ba8", "#f9e2af", "#a6e3a1"].map((c, i) => (
             <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, opacity: 0.7 }} />
           ))}
         </div>
 
-        {/* fastfetch prompt */}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", flexShrink: 0 }}>
           <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
           <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
@@ -222,7 +214,6 @@ function FastFetchTerminal() {
           )}
         </div>
 
-        {/* fastfetch output */}
         <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
           <div style={{ opacity: showFetchOutput && visibleRows > 0 ? 1 : 0, transition: "opacity 0.2s" }}>
             <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace" }}>
@@ -245,7 +236,6 @@ function FastFetchTerminal() {
           </div>
         </div>
 
-        {/* sudo rm -rf / row */}
         <div style={{
           height: "28px",
           flexShrink: 0,
