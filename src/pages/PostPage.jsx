@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ArrowLeft, Calendar, Tag, List } from 'lucide-react'
 import { posts } from '../data/posts'
+import '../styles/post.css'
 
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
 
@@ -18,7 +21,6 @@ export default function PostPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    // Reset state on every slug change so stale notFound doesn't block a valid post
     setContent(null)
     setNotFound(false)
     setActiveId('')
@@ -61,8 +63,7 @@ export default function PostPage() {
 
   if (!content) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="post-spinner" />
     </div>
   )
 
@@ -85,17 +86,17 @@ export default function PostPage() {
             ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
-              <List size={12} /> on this page
+              <List size={12} aria-hidden="true" /> on this page
             </div>
             {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
           </motion.aside>
         )}
 
         <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <Link to="/posts" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', textDecoration: 'none', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', marginBottom: '32px', transition: 'color 0.2s' }}
+          <Link to="/posts" className="post-back"
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
-            <ArrowLeft size={14} /> back to posts
+            <ArrowLeft size={14} aria-hidden="true" /> back to posts
           </Link>
 
           <div style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid var(--border)' }}>
@@ -105,12 +106,12 @@ export default function PostPage() {
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {meta?.published && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
-                  <Calendar size={12} /> {meta.published}
+                  <Calendar size={12} aria-hidden="true" /> {meta.published}
                 </span>
               )}
               {meta?.tags?.map(tag => (
                 <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                  <Tag size={11} /> {tag}
+                  <Tag size={11} aria-hidden="true" /> {tag}
                 </span>
               ))}
             </div>
@@ -123,13 +124,19 @@ export default function PostPage() {
                 h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id}>{children}</h3> },
                 code: ({ className, children }) => {
                   const lang = (className || '').replace('language-', '')
-                  // If no language class and no newlines → inline code
                   const isInline = !className && !String(children).includes('\n')
                   if (isInline) return <code className="inline-code">{children}</code>
                   return (
                     <div className="code-block">
                       {lang && <div className="code-lang">{lang}</div>}
-                      <pre><code>{children}</code></pre>
+                      <SyntaxHighlighter
+                        language={lang || 'text'}
+                        style={oneDark}
+                        customStyle={{ margin: 0, borderRadius: 0, background: 'var(--surface)', fontSize: '0.875rem', lineHeight: 1.65 }}
+                        PreTag="div"
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
                     </div>
                   )
                 },
@@ -142,48 +149,6 @@ export default function PostPage() {
           </div>
         </motion.article>
       </div>
-
-      <style>{`
-        .prose { color: var(--text); font-size: 0.975rem; line-height: 1.85; }
-        .prose h2 { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 2.2em 0 0.8em; padding-top: 0.5em; }
-        .prose h3 { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.8em 0 0.6em; }
-        .prose p { margin-bottom: 1.2em; color: var(--muted); max-width: 68ch; }
-        .prose p:first-child { color: var(--text); font-style: italic; }
-        .prose ul, .prose ol { margin: 0 0 1.2em 1.4em; color: var(--muted); }
-        .prose li { margin-bottom: 0.4em; }
-        .prose strong { color: var(--text); font-weight: 600; }
-        .prose em { color: var(--text); font-style: italic; }
-        .inline-code { font-family: var(--font-mono); font-size: 0.85em; padding: 2px 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--accent); }
-        .code-block { margin: 1.4em 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
-        .code-lang { padding: 6px 16px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.08em; }
-        .code-block pre { padding: 20px; overflow-x: auto; margin: 0; }
-        .code-block pre code { font-family: var(--font-mono); font-size: 0.875rem; color: var(--text); line-height: 1.65; background: none; }
-        .blockquote { border-left: 3px solid var(--accent); padding: 10px 18px; margin: 1.4em 0; background: var(--surface); border-radius: 0 8px 8px 0; color: var(--muted); font-style: italic; }
-        .prose-link { color: var(--accent); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
-        .prose-link:hover { text-decoration-color: var(--accent); }
-
-        .post-layout { }
-        .post-article { order: 1; }
-        .post-toc    { order: 2; }
-
-        @media (max-width: 768px) {
-          .post-layout {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-          .post-article { order: 2; }
-          .post-toc {
-            order: 1;
-            position: static !important;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px 16px;
-          }
-          .prose h2 { font-size: 1.1rem; }
-          .prose p { max-width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }
@@ -192,7 +157,17 @@ function TocItem({ h, active, onClick }) {
   const [hovered, setHovered] = useState(false)
   return (
     <button onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', color: active ? 'var(--accent)' : hovered ? 'var(--text)' : 'var(--muted)', borderLeft: h.level === 2 ? `2px solid ${active ? 'var(--accent)' : 'var(--border)'}` : 'none', paddingLeft: h.level === 2 ? '10px' : '24px', paddingTop: '4px', paddingBottom: '4px', transition: 'color 0.2s, border-color 0.2s', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
+        cursor: 'pointer', fontSize: '0.78rem', fontFamily: 'var(--font-mono)',
+        color: active ? 'var(--accent)' : hovered ? 'var(--text)' : 'var(--muted)',
+        borderLeft: `2px solid ${active ? 'var(--accent)' : h.level === 3 ? 'color-mix(in srgb, var(--border) 60%, transparent)' : 'var(--border)'}`,
+        paddingLeft: h.level === 2 ? '10px' : '20px',
+        paddingTop: '4px', paddingBottom: '4px',
+        transition: 'color 0.2s, border-color 0.2s',
+        lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        opacity: h.level === 3 ? 0.85 : 1,
+      }}
     >{h.text}</button>
   )
 }
@@ -201,7 +176,7 @@ function slugify(text) {
   return String(text)
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')  // strip diacritics
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s-]/g, '')
     .trim()
     .replace(/[\s]+/g, '-')
