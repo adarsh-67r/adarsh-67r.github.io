@@ -32,7 +32,7 @@ const RM_CMD = "sudo rm -rf /";
 const TERMINAL_HEIGHT = 344;
 
 // Inline command: types and erases in a loop, no output — fixed height so no layout shift
-function InlineCommand({ cmd = "whoami", speed = 70, pause = 1400 }) {
+function InlineCommand({ cmd = "whoami", speed = 120, pause = 1400 }) {
   const [displayed, setDisplayed] = useState("");
   const [erasing, setErasing] = useState(false);
 
@@ -46,7 +46,7 @@ function InlineCommand({ cmd = "whoami", speed = 70, pause = 1400 }) {
       }
     } else {
       if (displayed.length > 0) {
-        timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
+        timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 40);
       } else {
         setErasing(false);
       }
@@ -90,6 +90,8 @@ function FastFetchTerminal() {
   const [rmDisplayed, setRmDisplayed] = useState("");
   const [glitch, setGlitch] = useState(false);
   const [destroyed, setDestroyed] = useState(false);
+  // contentOpacity fades ALL output (ASCII + rows + rm row) together on destroy
+  const [contentOpacity, setContentOpacity] = useState(1);
   const timers = useRef([]);
 
   const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
@@ -105,6 +107,7 @@ function FastFetchTerminal() {
       setRmDisplayed("");
       setGlitch(false);
       setDestroyed(false);
+      setContentOpacity(1);
       let i = 0;
       const typeNext = () => {
         i++;
@@ -142,10 +145,13 @@ function FastFetchTerminal() {
     }
 
     if (phase === "destroying") {
+      // Glitch flashes
       const flashes = [0, 80, 160, 240, 320, 400];
       flashes.forEach((t, i) => delay(() => setGlitch(i % 2 === 0), t));
-      delay(() => { setGlitch(false); setDestroyed(true); }, 500);
-      delay(() => setPhase("typing"), 1800);
+      // Fade ALL content (ASCII logo, rows, rm prompt) together
+      delay(() => setContentOpacity(0), 80);
+      delay(() => { setGlitch(false); setDestroyed(true); }, 520);
+      delay(() => setPhase("typing"), 1900);
     }
 
     return clearAll;
@@ -185,7 +191,7 @@ function FastFetchTerminal() {
           ))}
         </div>
 
-        {/* fastfetch prompt */}
+        {/* fastfetch prompt — ~ $ accent/muted style */}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", flexShrink: 0 }}>
           <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
           <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
@@ -197,9 +203,16 @@ function FastFetchTerminal() {
           )}
         </div>
 
-        {/* Main content — fills remaining space, clipped */}
-        <div style={{ flex: 1, overflow: "hidden", minHeight: 0, position: "relative" }}>
-          {/* terminal closed overlay */}
+        {/* Content area — opacity controlled by contentOpacity for full wipe on destroy */}
+        <div style={{
+          flex: 1,
+          overflow: "hidden",
+          minHeight: 0,
+          position: "relative",
+          opacity: contentOpacity,
+          transition: "opacity 0.18s",
+        }}>
+          {/* terminal closed overlay — shown after destroy, fades in */}
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -236,19 +249,20 @@ function FastFetchTerminal() {
           </div>
         </div>
 
-        {/* sudo rm -rf / — pinned footer row, always in DOM, toggled by opacity */}
+        {/* sudo rm -rf / — same ~ $ style as fastfetch prompt, pinned footer row */}
         <div style={{
           height: "28px",
           flexShrink: 0,
           marginTop: "6px",
-          opacity: showRmPrompt ? 1 : 0,
+          opacity: showRmPrompt ? contentOpacity : 0,
           transition: "opacity 0.15s",
           display: "flex",
           alignItems: "center",
+          gap: "4px",
         }}>
-          <span style={{ color: "#f38ba8", opacity: 0.8 }}>~</span>
-          <span style={{ color: "var(--muted)", opacity: 0.5, margin: "0 4px" }}>#</span>
-          <span style={{ color: "#f38ba8" }}>{rmDisplayed}</span>
+          <span style={{ color: "#f38ba8", opacity: 0.7 }}>~</span>
+          <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
+          <span style={{ color: "#f38ba8", marginLeft: "4px" }}>{rmDisplayed}</span>
           {rmCursor && (
             <span style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
           )}
@@ -274,7 +288,7 @@ export default function About() {
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
       >
-        <InlineCommand cmd="whoami" />
+        <InlineCommand cmd="whoami" speed={120} />
         <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 400, fontStyle: "italic", fontFamily: "var(--font-display)", color: "var(--text)", marginBottom: "32px", letterSpacing: "-0.01em" }}>
           about me
         </h2>
