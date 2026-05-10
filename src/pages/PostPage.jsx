@@ -74,9 +74,21 @@ export default function PostPage() {
 
   return (
     <div style={{ minHeight: '100vh', padding: '90px max(24px, calc((100vw - 1100px) / 2)) 80px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
+      <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
 
-        <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        {/* On mobile: TOC renders first (order:1 via CSS), article second (order:2) */}
+        {headings.length > 0 && (
+          <motion.aside className="post-toc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
+            ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
+              <List size={12} /> on this page
+            </div>
+            {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
+          </motion.aside>
+        )}
+
+        <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <Link to="/posts" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', textDecoration: 'none', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', marginBottom: '32px', transition: 'color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
@@ -124,17 +136,6 @@ export default function PostPage() {
             </ReactMarkdown>
           </div>
         </motion.article>
-
-        {headings.length > 0 && (
-          <motion.aside initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-            ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
-              <List size={12} /> on this page
-            </div>
-            {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
-          </motion.aside>
-        )}
       </div>
 
       <style>{`
@@ -155,7 +156,30 @@ export default function PostPage() {
         .blockquote { border-left: 3px solid var(--accent); padding: 10px 18px; margin: 1.4em 0; background: var(--surface); border-radius: 0 8px 8px 0; color: var(--muted); font-style: italic; }
         .prose-link { color: var(--accent); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
         .prose-link:hover { text-decoration-color: var(--accent); }
-        @media (max-width: 768px) { .prose h2 { font-size: 1.1rem; } .prose p { max-width: 100%; } }
+
+        /* Desktop: article left, TOC right */
+        .post-layout { }
+        .post-article { order: 1; }
+        .post-toc    { order: 2; }
+
+        /* Mobile: single column, TOC above article */
+        @media (max-width: 768px) {
+          .post-layout {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .post-article { order: 2; }
+          .post-toc {
+            order: 1;
+            position: static !important;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+          }
+          .prose h2 { font-size: 1.1rem; }
+          .prose p { max-width: 100%; }
+        }
       `}</style>
     </div>
   )

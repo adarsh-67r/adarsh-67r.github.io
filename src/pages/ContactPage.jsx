@@ -9,33 +9,35 @@ const SOCIALS = [
   { icon: Mail,     label: 'Email',    handle: 'adarshanshuman6@gmail.com', href: 'mailto:adarshanshuman6@gmail.com',           desc: 'For serious stuff' },
 ]
 
-// Live scrolling ping output — loops forever
+// Authentic Linux ping output — fixed height, no layout shift
 function PingOutput() {
   const [lines, setLines] = useState([])
   const timerRef = useRef(null)
+  const seqRef = useRef(0)
 
   useEffect(() => {
-    let seq = 0
-    let currentLines = []
+    // Initial header lines
+    const header = [
+      'PING adarsh.dev (127.0.0.1) 56(84) bytes of data.',
+    ]
+    setLines(header)
 
-    function addLine() {
-      if (seq === 0) {
-        currentLines = ['PING adarsh (127.0.0.1): 56 bytes']
-        setLines([...currentLines])
-        seq = 1
-        timerRef.current = setTimeout(addLine, 600)
-      } else {
-        const ms = (0.35 + Math.random() * 0.18).toFixed(2)
-        const line = `64 bytes: icmp_seq=${seq - 1} ttl=64 time=${ms} ms`
-        currentLines = [...currentLines, line]
-        if (currentLines.length > 6) currentLines = currentLines.slice(-6)
-        setLines([...currentLines])
-        seq++
-        timerRef.current = setTimeout(addLine, 900)
-      }
+    function addPing() {
+      const seq = seqRef.current
+      const ms  = (0.22 + Math.random() * 0.31).toFixed(3)
+      const ttl = 64
+      const line = `64 bytes from 127.0.0.1: icmp_seq=${seq} ttl=${ttl} time=${ms} ms`
+      seqRef.current = seq + 1
+      setLines(prev => {
+        const next = [...prev, line]
+        // keep header + up to 6 ping lines (7 total) so height is stable
+        if (next.length > 7) return [next[0], ...next.slice(-6)]
+        return next
+      })
+      timerRef.current = setTimeout(addPing, 1000)
     }
 
-    timerRef.current = setTimeout(addLine, 300)
+    timerRef.current = setTimeout(addPing, 600)
     return () => clearTimeout(timerRef.current)
   }, [])
 
@@ -43,16 +45,17 @@ function PingOutput() {
     <div style={{
       fontFamily: 'var(--font-mono)',
       fontSize: '0.72rem',
-      color: 'var(--muted)',
-      lineHeight: 1.8,
-      marginTop: '6px',
-      minHeight: '6em',
+      lineHeight: 1.85,
+      /* Fixed height: header + 6 ping lines = 7 lines */
+      height: 'calc(7 * 1.85 * 0.72rem)',
+      minHeight: '9em',
+      overflow: 'hidden',
     }}>
       {lines.map((line, i) => (
-        <div key={i} style={{ opacity: i === 0 ? 0.7 : i === lines.length - 1 ? 1 : 0.55 }}>
+        <div key={i} style={{ color: i === 0 ? 'var(--accent)' : 'var(--muted)', opacity: i === 0 ? 0.8 : i === lines.length - 1 ? 1 : 0.6 }}>
           {i === 0
-            ? <span style={{ color: 'var(--accent)', opacity: 0.85 }}>{line}</span>
-            : <><span style={{ color: 'var(--accent)', opacity: 0.4 }}>{'> '}</span>{line}</>
+            ? line
+            : <><span style={{ color: 'var(--accent)', opacity: 0.35 }}>{'> '}</span>{line}</>
           }
         </div>
       ))}
@@ -79,21 +82,32 @@ export default function ContactPage() {
     <div style={{ padding: '120px max(24px, calc((100vw - 860px) / 2)) 80px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 
-        {/* Looping terminal command */}
-        <TerminalCmd cmd="ping adarsh" loop={true} />
+        <TerminalCmd cmd="ping adarsh.dev" loop={true} />
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 400, fontStyle: 'italic', fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '12px', letterSpacing: '-0.01em' }}>get in touch</h1>
         <p style={{ color: 'var(--muted)', fontSize: '0.95rem', fontFamily: 'var(--font-body)', lineHeight: 1.7, marginBottom: '40px', maxWidth: '480px' }}>
           Have something interesting to say, a project idea, or just want to chat? I'm usually reachable.
         </p>
 
-        {/* Live ping output block */}
-        <div style={{ padding: '16px 22px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '48px' }}>
+        {/* Ping terminal — fixed height, no scroll jump */}
+        <div style={{ padding: '14px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '48px' }}>
+          {/* Terminal title bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5f57', display: 'inline-block' }} />
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#febc2e', display: 'inline-block' }} />
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#28c840', display: 'inline-block' }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', marginLeft: '8px', opacity: 0.6 }}>bash — adarsh@localhost</span>
+          </div>
+          {/* The prompt that kicked it off */}
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', marginBottom: '4px' }}>
+            <span style={{ color: 'var(--accent)', opacity: 0.55 }}>$ </span>ping adarsh.dev
+          </div>
           <PingOutput />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
+        {/* 2-col grid on desktop, 1-col on mobile */}
+        <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'start' }}>
 
-          {/* Left — social cards */}
+          {/* Social cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '4px' }}>find me on</p>
             {SOCIALS.map((s, i) => (
@@ -105,36 +119,27 @@ export default function ContactPage() {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + i * 0.08 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '14px',
-                  padding: '14px 18px',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  transition: 'all 0.2s',
-                  color: 'var(--text)',
-                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', textDecoration: 'none', transition: 'all 0.2s', color: 'var(--text)' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateX(4px)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}
               >
                 <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
                   <s.icon size={16} />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', marginBottom: '2px' }}>{s.label}</div>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--muted)' }}>{s.desc}</div>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.desc}</div>
                 </div>
                 <ArrowRight size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
               </motion.a>
             ))}
           </div>
 
-          {/* Right — message form */}
+          {/* Message form */}
           <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px' }}>send a message</p>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <Field label="Name"  name="name"  value={form.name}  onChange={handleChange} placeholder="your name"       required />
                 <Field label="Email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
               </div>
@@ -162,7 +167,13 @@ export default function ContactPage() {
 
       <style>{`
         @media (max-width: 700px) {
-          .contact-grid { grid-template-columns: 1fr !important; }
+          .contact-grid {
+            grid-template-columns: 1fr !important;
+            gap: 32px !important;
+          }
+          .form-row {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
     </div>
