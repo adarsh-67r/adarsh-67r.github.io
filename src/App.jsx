@@ -30,13 +30,11 @@ export default function App() {
           <ScrollToTop />
           <main style={{ flex: 1 }}>
             <Routes>
-              <Route path="/"             element={<Home />} />
-              <Route path="/projects"     element={<ProjectsPage />} />
-              <Route path="/posts"        element={<PostsPage />} />
-              <Route path="/posts/:slug"  element={<PostPage />} />
-              <Route path="/contact"      element={<ContactPage />} />
-              <Route path="/blog"         element={<PostsPage />} />
-              <Route path="/blog/:slug"   element={<PostPage />} />
+              <Route path="/"            element={<Home />} />
+              <Route path="/projects"    element={<ProjectsPage />} />
+              <Route path="/posts"       element={<PostsPage />} />
+              <Route path="/posts/:slug" element={<PostPage />} />
+              <Route path="/contact"     element={<ContactPage />} />
             </Routes>
           </main>
           <Footer />
