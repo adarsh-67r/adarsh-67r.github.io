@@ -1,14 +1,57 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ArrowLeft, Calendar, Tag, List } from 'lucide-react'
 import { posts } from '../data/posts'
 import '../styles/post.css'
 
+const SyntaxHighlighter = lazy(() =>
+  import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
+)
+
+let oneDarkStyle = null
+import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
+  oneDarkStyle = m.oneDark
+})
+
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
+
+function CodeBlock({ className, children }) {
+  const [style, setStyle] = useState(oneDarkStyle)
+  useEffect(() => {
+    if (!oneDarkStyle) {
+      import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
+        oneDarkStyle = m.oneDark
+        setStyle(m.oneDark)
+      })
+    }
+  }, [])
+
+  const lang = (className || '').replace('language-', '')
+  const isInline = !className && !String(children).includes('\n')
+  if (isInline) return <code className="inline-code">{children}</code>
+
+  return (
+    <div className="code-block">
+      {lang && <div className="code-lang">{lang}</div>}
+      <Suspense fallback={<pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{String(children).replace(/\n$/, '')}</code></pre>}>
+        {style ? (
+          <SyntaxHighlighter
+            language={lang || 'text'}
+            style={style}
+            customStyle={{ margin: 0, borderRadius: 0, background: 'var(--surface)', fontSize: '0.875rem', lineHeight: 1.65 }}
+            PreTag="div"
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        ) : (
+          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{String(children).replace(/\n$/, '')}</code></pre>
+        )}
+      </Suspense>
+    </div>
+  )
+}
 
 export default function PostPage() {
   const { slug } = useParams()
@@ -122,24 +165,7 @@ export default function PostPage() {
               components={{
                 h2: ({ children }) => { const id = slugify(String(children)); return <h2 id={id}>{children}</h2> },
                 h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id}>{children}</h3> },
-                code: ({ className, children }) => {
-                  const lang = (className || '').replace('language-', '')
-                  const isInline = !className && !String(children).includes('\n')
-                  if (isInline) return <code className="inline-code">{children}</code>
-                  return (
-                    <div className="code-block">
-                      {lang && <div className="code-lang">{lang}</div>}
-                      <SyntaxHighlighter
-                        language={lang || 'text'}
-                        style={oneDark}
-                        customStyle={{ margin: 0, borderRadius: 0, background: 'var(--surface)', fontSize: '0.875rem', lineHeight: 1.65 }}
-                        PreTag="div"
-                      >
-                        {String(children).replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    </div>
-                  )
-                },
+                code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock>,
                 blockquote: ({ children }) => <blockquote className="blockquote">{children}</blockquote>,
                 a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="prose-link">{children}</a>,
               }}
