@@ -16,9 +16,8 @@ function PingOutput() {
   const seqRef = useRef(0)
 
   useEffect(() => {
-    // Initial header lines
     const header = [
-      'PING adarsh.dev (127.0.0.1) 56(84) bytes of data.',
+      'PING adarsh (127.0.0.1) 56(84) bytes of data.',
     ]
     setLines(header)
 
@@ -30,7 +29,6 @@ function PingOutput() {
       seqRef.current = seq + 1
       setLines(prev => {
         const next = [...prev, line]
-        // keep header + up to 6 ping lines (7 total) so height is stable
         if (next.length > 7) return [next[0], ...next.slice(-6)]
         return next
       })
@@ -46,7 +44,6 @@ function PingOutput() {
       fontFamily: 'var(--font-mono)',
       fontSize: '0.72rem',
       lineHeight: 1.85,
-      /* Fixed height: header + 6 ping lines = 7 lines */
       height: 'calc(7 * 1.85 * 0.72rem)',
       minHeight: '9em',
       overflow: 'hidden',
@@ -82,7 +79,7 @@ export default function ContactPage() {
     <div style={{ padding: '120px max(24px, calc((100vw - 860px) / 2)) 80px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 
-        <TerminalCmd cmd="ping adarsh.dev" loop={true} />
+        <TerminalCmd cmd="ping adarsh" loop={true} />
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 400, fontStyle: 'italic', fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '12px', letterSpacing: '-0.01em' }}>get in touch</h1>
         <p style={{ color: 'var(--muted)', fontSize: '0.95rem', fontFamily: 'var(--font-body)', lineHeight: 1.7, marginBottom: '40px', maxWidth: '480px' }}>
           Have something interesting to say, a project idea, or just want to chat? I'm usually reachable.
@@ -99,7 +96,7 @@ export default function ContactPage() {
           </div>
           {/* The prompt that kicked it off */}
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', marginBottom: '4px' }}>
-            <span style={{ color: 'var(--accent)', opacity: 0.55 }}>$ </span>ping adarsh.dev
+            <span style={{ color: 'var(--accent)', opacity: 0.55 }}>$ </span>ping adarsh
           </div>
           <PingOutput />
         </div>
