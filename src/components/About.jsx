@@ -29,11 +29,57 @@ const ASCII_LOGO = ` █████╗ ██████╗  █████�
 ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝`;
 
 const RM_CMD = "sudo rm -rf /";
+const TERMINAL_HEIGHT = 344;
 
-// Total fixed height = macOS dots + prompt line + ascii logo + divider + 5 rows + swatch row
-// We keep the outer container at a fixed height and use overflow:hidden,
-// so no matter which phase we're in the surrounding page never shifts.
-const TERMINAL_HEIGHT = 320;
+// Inline command: types and erases in a loop, no output — fixed height so no layout shift
+function InlineCommand({ cmd = "whoami", speed = 70, pause = 1400 }) {
+  const [displayed, setDisplayed] = useState("");
+  const [erasing, setErasing] = useState(false);
+
+  useEffect(() => {
+    let timeout;
+    if (!erasing) {
+      if (displayed.length < cmd.length) {
+        timeout = setTimeout(() => setDisplayed(cmd.slice(0, displayed.length + 1)), speed);
+      } else {
+        timeout = setTimeout(() => setErasing(true), pause);
+      }
+    } else {
+      if (displayed.length > 0) {
+        timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
+      } else {
+        setErasing(false);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [cmd, displayed, erasing, speed, pause]);
+
+  return (
+    <div style={{
+      fontFamily: "var(--font-mono)",
+      color: "var(--accent)",
+      fontSize: "0.8rem",
+      marginBottom: "8px",
+      letterSpacing: "0.05em",
+      opacity: 0.6,
+      height: "1.2em",
+      display: "flex",
+      alignItems: "center",
+    }}>
+      <span style={{ marginRight: "6px" }}>$</span>
+      <span>{displayed}</span>
+      <span style={{
+        display: "inline-block",
+        width: "2px",
+        height: "1em",
+        background: "var(--accent)",
+        marginLeft: "3px",
+        animation: "whoBlink 1s step-end infinite",
+      }} />
+      <style>{`@keyframes whoBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+    </div>
+  );
+}
 
 function FastFetchTerminal() {
   const CMD = "fastfetch";
@@ -112,7 +158,6 @@ function FastFetchTerminal() {
   const rmCursor       = phase === "rm_typing";
 
   return (
-    /* Outer wrapper — constant height, clips everything inside */
     <div style={{
       height: `${TERMINAL_HEIGHT}px`,
       overflow: "hidden",
@@ -140,7 +185,7 @@ function FastFetchTerminal() {
           ))}
         </div>
 
-        {/* fastfetch prompt — always rendered, never unmounts */}
+        {/* fastfetch prompt */}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", flexShrink: 0 }}>
           <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
           <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
@@ -152,9 +197,9 @@ function FastFetchTerminal() {
           )}
         </div>
 
-        {/* Content area — always takes remaining height, clipped */}
-        <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
-          {/* "terminal closed" message — shown only when destroyed */}
+        {/* Main content — fills remaining space, clipped */}
+        <div style={{ flex: 1, overflow: "hidden", minHeight: 0, position: "relative" }}>
+          {/* terminal closed overlay */}
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -169,7 +214,7 @@ function FastFetchTerminal() {
             <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4, fontFamily: "'Fira Code',monospace" }}>terminal closed</span>
           </div>
 
-          {/* fastfetch output — fades in when available */}
+          {/* fastfetch output */}
           <div style={{ opacity: showFetchOutput && visibleRows > 0 ? 1 : 0, transition: "opacity 0.2s" }}>
             <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace" }}>
               {ASCII_LOGO}
@@ -189,18 +234,24 @@ function FastFetchTerminal() {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* sudo rm -rf prompt */}
-          <div style={{ marginTop: "8px", opacity: showRmPrompt ? 1 : 0, transition: "opacity 0.15s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span style={{ color: "#f38ba8", opacity: 0.8 }}>~</span>
-              <span style={{ color: "var(--muted)", opacity: 0.5 }}>#</span>
-              <span style={{ color: "#f38ba8", marginLeft: "4px" }}>{rmDisplayed}</span>
-              {rmCursor && (
-                <span style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
-              )}
-            </div>
-          </div>
+        {/* sudo rm -rf / — pinned footer row, always in DOM, toggled by opacity */}
+        <div style={{
+          height: "28px",
+          flexShrink: 0,
+          marginTop: "6px",
+          opacity: showRmPrompt ? 1 : 0,
+          transition: "opacity 0.15s",
+          display: "flex",
+          alignItems: "center",
+        }}>
+          <span style={{ color: "#f38ba8", opacity: 0.8 }}>~</span>
+          <span style={{ color: "var(--muted)", opacity: 0.5, margin: "0 4px" }}>#</span>
+          <span style={{ color: "#f38ba8" }}>{rmDisplayed}</span>
+          {rmCursor && (
+            <span style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
+          )}
         </div>
       </div>
       <style>{`@keyframes ffBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
@@ -223,9 +274,7 @@ export default function About() {
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
       >
-        <div style={{ fontFamily: "var(--font-mono)", color: "var(--accent)", fontSize: "0.8rem", marginBottom: "8px", letterSpacing: "0.05em", opacity: 0.6 }}>
-          $ whoami
-        </div>
+        <InlineCommand cmd="whoami" />
         <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 400, fontStyle: "italic", fontFamily: "var(--font-display)", color: "var(--text)", marginBottom: "32px", letterSpacing: "-0.01em" }}>
           about me
         </h2>
