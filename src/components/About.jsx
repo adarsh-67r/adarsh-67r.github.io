@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { Github, Linkedin, Mail } from "lucide-react";
 
 const FETCH_ROWS = [
-  { key: "user", value: "adarsh" },
-  { key: "os", value: "Arch Linux, Windows 11" },
-  { key: "shell", value: "bash · zsh · fish · powershell" },
+  { key: "user",   value: "adarsh" },
+  { key: "os",     value: "Arch Linux, Windows 11" },
+  { key: "shell",  value: "bash · zsh · fish · powershell" },
   { key: "editor", value: "vscode" },
   { key: "uptime", value: "still going" },
 ];
@@ -21,7 +21,6 @@ const SWATCHES = [
   "var(--muted)",
 ];
 
-// ANSI Shadow font — patorjk.com/software/taag
 const ASCII_LOGO = ` █████╗ ██████╗  █████╗ ██████╗ ███████╗██╗  ██╗
 ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝██║  ██║
 ███████║██║  ██║███████║██████╔╝███████╗███████║
@@ -30,6 +29,11 @@ const ASCII_LOGO = ` █████╗ ██████╗  █████�
 ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝`;
 
 const RM_CMD = "sudo rm -rf /";
+
+// Total fixed height = macOS dots + prompt line + ascii logo + divider + 5 rows + swatch row
+// We keep the outer container at a fixed height and use overflow:hidden,
+// so no matter which phase we're in the surrounding page never shifts.
+const TERMINAL_HEIGHT = 320;
 
 function FastFetchTerminal() {
   const CMD = "fastfetch";
@@ -41,14 +45,9 @@ function FastFetchTerminal() {
   const [glitch, setGlitch] = useState(false);
   const [destroyed, setDestroyed] = useState(false);
   const timers = useRef([]);
-  const clearAll = () => {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-  };
-  const delay = (fn, ms) => {
-    const t = setTimeout(fn, ms);
-    timers.current.push(t);
-  };
+
+  const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+  const delay = (fn, ms) => { const t = setTimeout(fn, ms); timers.current.push(t); };
 
   useEffect(() => {
     clearAll();
@@ -76,11 +75,7 @@ function FastFetchTerminal() {
         row++;
         setVisibleRows(row);
         if (row < FETCH_ROWS.length) delay(revealNext, 110);
-        else
-          delay(() => {
-            setShowSwatches(true);
-            delay(() => setPhase("holding"), 200);
-          }, 180);
+        else delay(() => { setShowSwatches(true); delay(() => setPhase("holding"), 200); }, 180);
       };
       delay(revealNext, 110);
     }
@@ -103,10 +98,7 @@ function FastFetchTerminal() {
     if (phase === "destroying") {
       const flashes = [0, 80, 160, 240, 320, 400];
       flashes.forEach((t, i) => delay(() => setGlitch(i % 2 === 0), t));
-      delay(() => {
-        setGlitch(false);
-        setDestroyed(true);
-      }, 500);
+      delay(() => { setGlitch(false); setDestroyed(true); }, 500);
       delay(() => setPhase("typing"), 1800);
     }
 
@@ -114,202 +106,103 @@ function FastFetchTerminal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const showFetchOutput =
-    ["revealing", "holding", "rm_typing", "destroying"].includes(phase) &&
-    !destroyed;
-  const showRmPrompt =
-    ["rm_typing", "destroying"].includes(phase) && !destroyed;
-  const fetchCursor = phase === "typing";
-  const rmCursor = phase === "rm_typing";
-
-  if (destroyed) {
-    return (
-      <div
-        style={{
-          padding: "18px 22px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "12px",
-          fontFamily:
-            "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace",
-          minHeight: "260px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4 }}>
-          terminal closed
-        </span>
-      </div>
-    );
-  }
+  const showFetchOutput = ["revealing", "holding", "rm_typing", "destroying"].includes(phase) && !destroyed;
+  const showRmPrompt   = ["rm_typing", "destroying"].includes(phase) && !destroyed;
+  const fetchCursor    = phase === "typing";
+  const rmCursor       = phase === "rm_typing";
 
   return (
-    <div
-      style={{
+    /* Outer wrapper — constant height, clips everything inside */
+    <div style={{
+      height: `${TERMINAL_HEIGHT}px`,
+      overflow: "hidden",
+      borderRadius: "12px",
+      border: `1px solid ${glitch ? "#f38ba8" : "var(--border)"}`,
+      transition: "border-color 0.1s",
+    }}>
+      <div style={{
         padding: "18px 22px",
         background: glitch ? "#f38ba8" : "var(--surface)",
-        border: `1px solid ${glitch ? "#f38ba8" : "var(--border)"}`,
-        borderRadius: "12px",
-        fontFamily:
-          "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace",
+        height: "100%",
+        fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace",
         fontSize: "0.78rem",
         lineHeight: 1.9,
-        minHeight: "260px",
         overflow: "hidden",
         filter: glitch ? "invert(1)" : "none",
-      }}
-    >
-      {/* macOS dots */}
-      <div style={{ display: "flex", gap: "6px", marginBottom: "14px" }}>
-        {["#f38ba8", "#f9e2af", "#a6e3a1"].map((c, i) => (
-          <div
-            key={i}
-            style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              background: c,
-              opacity: 0.7,
-            }}
-          />
-        ))}
-      </div>
+        transition: "background 0.1s, filter 0.1s",
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        {/* macOS dots */}
+        <div style={{ display: "flex", gap: "6px", marginBottom: "14px", flexShrink: 0 }}>
+          {["#f38ba8", "#f9e2af", "#a6e3a1"].map((c, i) => (
+            <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, opacity: 0.7 }} />
+          ))}
+        </div>
 
-      {/* fastfetch prompt */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          marginBottom: "4px",
-        }}
-      >
-        <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
-        <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
-        <span style={{ color: "var(--accent)", marginLeft: "4px" }}>
-          {cmdDisplayed}
-        </span>
-        {fetchCursor && (
-          <span
-            style={{
-              display: "inline-block",
-              width: "7px",
-              height: "1em",
-              background: "var(--accent)",
-              verticalAlign: "text-bottom",
-              borderRadius: "1px",
-              marginLeft: "1px",
-              animation: "ffBlink 1s step-end infinite",
-            }}
-          />
-        )}
-      </div>
-
-      {/* fastfetch output */}
-      {showFetchOutput && visibleRows > 0 && (
-        <div style={{ marginTop: "6px" }}>
-          <div
-            style={{
-              color: "var(--accent)",
-              whiteSpace: "pre",
-              fontSize: "0.58rem",
-              lineHeight: 1.35,
-              opacity: 0.9,
-              marginBottom: "10px",
-              fontFamily:
-                "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace",
-            }}
-          >
-            {ASCII_LOGO}
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid var(--border)",
-              paddingTop: "8px",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {FETCH_ROWS.slice(0, visibleRows).map(({ key, value }) => (
-              <div
-                key={key}
-                style={{ display: "flex", alignItems: "baseline" }}
-              >
-                <span
-                  style={{
-                    color: "var(--accent)",
-                    fontWeight: 600,
-                    minWidth: "68px",
-                    fontSize: "0.76rem",
-                  }}
-                >
-                  {key}
-                </span>
-                <span style={{ color: "var(--border)", margin: "0 6px" }}>
-                  ~
-                </span>
-                <span style={{ color: "var(--text)", fontSize: "0.76rem" }}>
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
-          {showSwatches && (
-            <div
-              style={{
-                display: "flex",
-                gap: "5px",
-                marginTop: "12px",
-                paddingTop: "8px",
-                borderTop: "1px solid var(--border)",
-              }}
-            >
-              {SWATCHES.map((c, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "14px",
-                    height: "14px",
-                    borderRadius: "3px",
-                    background: c,
-                    flexShrink: 0,
-                  }}
-                />
-              ))}
-            </div>
+        {/* fastfetch prompt — always rendered, never unmounts */}
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", flexShrink: 0 }}>
+          <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
+          <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
+          <span style={{ color: "var(--accent)", marginLeft: "4px" }}>
+            {destroyed ? CMD : cmdDisplayed}
+          </span>
+          {fetchCursor && (
+            <span style={{ display: "inline-block", width: "7px", height: "1em", background: "var(--accent)", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
           )}
         </div>
-      )}
 
-      {/* sudo rm -rf / */}
-      {showRmPrompt && (
-        <div style={{ marginTop: "8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ color: "#f38ba8", opacity: 0.8 }}>~</span>
-            <span style={{ color: "var(--muted)", opacity: 0.5 }}>#</span>
-            <span style={{ color: "#f38ba8", marginLeft: "4px" }}>
-              {rmDisplayed}
-            </span>
-            {rmCursor && (
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "7px",
-                  height: "1em",
-                  background: "#f38ba8",
-                  verticalAlign: "text-bottom",
-                  borderRadius: "1px",
-                  marginLeft: "1px",
-                  animation: "ffBlink 1s step-end infinite",
-                }}
-              />
-            )}
+        {/* Content area — always takes remaining height, clipped */}
+        <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+          {/* "terminal closed" message — shown only when destroyed */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            opacity: destroyed ? 1 : 0,
+            transition: "opacity 0.3s",
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+          }}>
+            <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4, fontFamily: "'Fira Code',monospace" }}>terminal closed</span>
+          </div>
+
+          {/* fastfetch output — fades in when available */}
+          <div style={{ opacity: showFetchOutput && visibleRows > 0 ? 1 : 0, transition: "opacity 0.2s" }}>
+            <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace" }}>
+              {ASCII_LOGO}
+            </div>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "8px", display: "flex", flexDirection: "column" }}>
+              {FETCH_ROWS.map(({ key, value }, idx) => (
+                <div key={key} style={{ display: "flex", alignItems: "baseline", opacity: idx < visibleRows ? 1 : 0, transition: "opacity 0.15s" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: 600, minWidth: "68px", fontSize: "0.76rem" }}>{key}</span>
+                  <span style={{ color: "var(--border)", margin: "0 6px" }}>~</span>
+                  <span style={{ color: "var(--text)", fontSize: "0.76rem" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "5px", marginTop: "12px", paddingTop: "8px", borderTop: "1px solid var(--border)", opacity: showSwatches ? 1 : 0, transition: "opacity 0.2s" }}>
+              {SWATCHES.map((c, i) => (
+                <div key={i} style={{ width: "14px", height: "14px", borderRadius: "3px", background: c, flexShrink: 0 }} />
+              ))}
+            </div>
+          </div>
+
+          {/* sudo rm -rf prompt */}
+          <div style={{ marginTop: "8px", opacity: showRmPrompt ? 1 : 0, transition: "opacity 0.15s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ color: "#f38ba8", opacity: 0.8 }}>~</span>
+              <span style={{ color: "var(--muted)", opacity: 0.5 }}>#</span>
+              <span style={{ color: "#f38ba8", marginLeft: "4px" }}>{rmDisplayed}</span>
+              {rmCursor && (
+                <span style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
+              )}
+            </div>
           </div>
         </div>
-      )}
-
+      </div>
       <style>{`@keyframes ffBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
@@ -330,66 +223,19 @@ export default function About() {
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            color: "var(--accent)",
-            fontSize: "0.8rem",
-            marginBottom: "8px",
-            letterSpacing: "0.05em",
-            opacity: 0.6,
-          }}
-        >
+        <div style={{ fontFamily: "var(--font-mono)", color: "var(--accent)", fontSize: "0.8rem", marginBottom: "8px", letterSpacing: "0.05em", opacity: 0.6 }}>
           $ whoami
         </div>
-        <h2
-          style={{
-            fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
-            fontWeight: 400,
-            fontStyle: "italic",
-            fontFamily: "var(--font-display)",
-            color: "var(--text)",
-            marginBottom: "32px",
-            letterSpacing: "-0.01em",
-          }}
-        >
+        <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 400, fontStyle: "italic", fontFamily: "var(--font-display)", color: "var(--text)", marginBottom: "32px", letterSpacing: "-0.01em" }}>
           about me
         </h2>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "40px",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              width: "120px",
-              height: "120px",
-              borderRadius: "50%",
-              background: "var(--surface)",
-              border: "2px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "3rem",
-              flexShrink: 0,
-            }}
-          >
+        <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ width: "120px", height: "120px", borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "3rem", flexShrink: 0 }}>
             🧑‍💻
           </div>
           <div style={{ flex: 1, minWidth: "260px" }}>
-            <p
-              style={{
-                color: "var(--text)",
-                fontSize: "0.95rem",
-                fontFamily: "var(--font-body)",
-                lineHeight: 1.8,
-                marginBottom: "24px",
-              }}
-            >
+            <p style={{ color: "var(--text)", fontSize: "0.95rem", fontFamily: "var(--font-body)", lineHeight: 1.8, marginBottom: "24px" }}>
               I&apos;m Adarsh, an undergraduate student at NIT Rourkela.
               I&apos;m into programming, math, and problem-solving. This site is
               my personal space on the internet. Outside screens I enjoy music,
@@ -397,49 +243,14 @@ export default function About() {
             </p>
             <div style={{ display: "flex", gap: "10px" }}>
               {[
-                {
-                  href: "https://github.com/adarsh-67r",
-                  icon: <Github size={17} />,
-                  label: "GitHub",
-                },
-                {
-                  href: "https://www.linkedin.com/in/adarsh67",
-                  icon: <Linkedin size={17} />,
-                  label: "LinkedIn",
-                },
-                {
-                  href: "mailto:adarshanshuman6@gmail.com",
-                  icon: <Mail size={17} />,
-                  label: "Email",
-                },
+                { href: "https://github.com/adarsh-67r",            icon: <Github size={17} />,   label: "GitHub" },
+                { href: "https://www.linkedin.com/in/adarsh67",     icon: <Linkedin size={17} />, label: "LinkedIn" },
+                { href: "mailto:adarshanshuman6@gmail.com",          icon: <Mail size={17} />,     label: "Email" },
               ].map(({ href, icon, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  style={{
-                    width: "38px",
-                    height: "38px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "9px",
-                    color: "var(--muted)",
-                    transition: "all 0.2s",
-                    textDecoration: "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--accent)";
-                    e.currentTarget.style.color = "var(--accent)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.color = "var(--muted)";
-                  }}
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
+                  style={{ width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "9px", color: "var(--muted)", transition: "all 0.2s", textDecoration: "none" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
                 >
                   {icon}
                 </a>
