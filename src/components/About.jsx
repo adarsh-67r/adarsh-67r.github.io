@@ -31,7 +31,6 @@ const ASCII_LOGO = ` █████╗ ██████╗  █████�
 const RM_CMD = "sudo rm -rf /";
 const TERMINAL_HEIGHT = 344;
 
-// Inline command: types and erases in a loop, no output — fixed height so no layout shift
 function InlineCommand({ cmd = "whoami", speed = 120, pause = 1400 }) {
   const [displayed, setDisplayed] = useState("");
   const [erasing, setErasing] = useState(false);
@@ -90,8 +89,8 @@ function FastFetchTerminal() {
   const [rmDisplayed, setRmDisplayed] = useState("");
   const [glitch, setGlitch] = useState(false);
   const [destroyed, setDestroyed] = useState(false);
-  // contentOpacity fades ALL output (ASCII + rows + rm row) together on destroy
-  const [contentOpacity, setContentOpacity] = useState(1);
+  // 0 = fully wiped, 1 = fully visible — controls ENTIRE inner content
+  const [termOpacity, setTermOpacity] = useState(1);
   const timers = useRef([]);
 
   const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
@@ -107,7 +106,7 @@ function FastFetchTerminal() {
       setRmDisplayed("");
       setGlitch(false);
       setDestroyed(false);
-      setContentOpacity(1);
+      setTermOpacity(1);
       let i = 0;
       const typeNext = () => {
         i++;
@@ -147,11 +146,12 @@ function FastFetchTerminal() {
     if (phase === "destroying") {
       // Glitch flashes
       const flashes = [0, 80, 160, 240, 320, 400];
-      flashes.forEach((t, i) => delay(() => setGlitch(i % 2 === 0), t));
-      // Fade ALL content (ASCII logo, rows, rm prompt) together
-      delay(() => setContentOpacity(0), 80);
+      flashes.forEach((t, idx) => delay(() => setGlitch(idx % 2 === 0), t));
+      // Fade out the ENTIRE terminal content (dots, prompt, output, rm row)
+      delay(() => setTermOpacity(0), 80);
+      // After fade, mark destroyed so "terminal closed" can appear
       delay(() => { setGlitch(false); setDestroyed(true); }, 520);
-      delay(() => setPhase("typing"), 1900);
+      delay(() => setPhase("typing"), 2000);
     }
 
     return clearAll;
@@ -170,7 +170,25 @@ function FastFetchTerminal() {
       borderRadius: "12px",
       border: `1px solid ${glitch ? "#f38ba8" : "var(--border)"}`,
       transition: "border-color 0.1s",
+      position: "relative",
     }}>
+      {/* "terminal closed" shown after full wipe */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--surface)",
+        opacity: destroyed ? 1 : 0,
+        transition: "opacity 0.35s",
+        pointerEvents: "none",
+        zIndex: 2,
+      }}>
+        <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4, fontFamily: "'Fira Code',monospace" }}>terminal closed</span>
+      </div>
+
+      {/* Entire terminal content — fades out as one unit on destroy */}
       <div style={{
         padding: "18px 22px",
         background: glitch ? "#f38ba8" : "var(--surface)",
@@ -180,7 +198,8 @@ function FastFetchTerminal() {
         lineHeight: 1.9,
         overflow: "hidden",
         filter: glitch ? "invert(1)" : "none",
-        transition: "background 0.1s, filter 0.1s",
+        opacity: termOpacity,
+        transition: "background 0.1s, filter 0.1s, opacity 0.18s",
         display: "flex",
         flexDirection: "column",
       }}>
@@ -191,43 +210,20 @@ function FastFetchTerminal() {
           ))}
         </div>
 
-        {/* fastfetch prompt — ~ $ accent/muted style */}
+        {/* fastfetch prompt */}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", flexShrink: 0 }}>
           <span style={{ color: "var(--accent)", opacity: 0.7 }}>~</span>
           <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
           <span style={{ color: "var(--accent)", marginLeft: "4px" }}>
-            {destroyed ? CMD : cmdDisplayed}
+            {cmdDisplayed}
           </span>
           {fetchCursor && (
             <span style={{ display: "inline-block", width: "7px", height: "1em", background: "var(--accent)", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
           )}
         </div>
 
-        {/* Content area — opacity controlled by contentOpacity for full wipe on destroy */}
-        <div style={{
-          flex: 1,
-          overflow: "hidden",
-          minHeight: 0,
-          position: "relative",
-          opacity: contentOpacity,
-          transition: "opacity 0.18s",
-        }}>
-          {/* terminal closed overlay — shown after destroy, fades in */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            opacity: destroyed ? 1 : 0,
-            transition: "opacity 0.3s",
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-          }}>
-            <span style={{ color: "#f38ba8", fontSize: "0.72rem", opacity: 0.4, fontFamily: "'Fira Code',monospace" }}>terminal closed</span>
-          </div>
-
-          {/* fastfetch output */}
+        {/* fastfetch output */}
+        <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
           <div style={{ opacity: showFetchOutput && visibleRows > 0 ? 1 : 0, transition: "opacity 0.2s" }}>
             <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace" }}>
               {ASCII_LOGO}
@@ -249,12 +245,12 @@ function FastFetchTerminal() {
           </div>
         </div>
 
-        {/* sudo rm -rf / — same ~ $ style as fastfetch prompt, pinned footer row */}
+        {/* sudo rm -rf / row */}
         <div style={{
           height: "28px",
           flexShrink: 0,
           marginTop: "6px",
-          opacity: showRmPrompt ? contentOpacity : 0,
+          opacity: showRmPrompt ? 1 : 0,
           transition: "opacity 0.15s",
           display: "flex",
           alignItems: "center",
