@@ -24,18 +24,17 @@ export default function App() {
   return (
     <HelmetProvider>
       <ThemeProvider>
-        <div className="grain">
+        <div className="grain" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <CursorGlow />
           <Navbar />
           <ScrollToTop />
-          <main>
+          <main style={{ flex: 1 }}>
             <Routes>
               <Route path="/"             element={<Home />} />
               <Route path="/projects"     element={<ProjectsPage />} />
               <Route path="/posts"        element={<PostsPage />} />
               <Route path="/posts/:slug"  element={<PostPage />} />
               <Route path="/contact"      element={<ContactPage />} />
-              {/* legacy blog redirects */}
               <Route path="/blog"         element={<PostsPage />} />
               <Route path="/blog/:slug"   element={<PostPage />} />
             </Routes>
