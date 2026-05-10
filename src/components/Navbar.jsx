@@ -50,7 +50,7 @@ export default function Navbar() {
   const active      = themes.find(t => t.value === currentTheme)
 
   const isActive = (to) => {
-    if (to === '/posts') return location.pathname.startsWith('/posts') || location.pathname.startsWith('/blog')
+    if (to === '/posts') return location.pathname.startsWith('/posts')
     return location.pathname === to
   }
 
