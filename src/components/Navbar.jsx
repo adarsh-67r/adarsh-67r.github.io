@@ -17,6 +17,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [search, setSearch]         = useState('')
   const dropdownRef = useRef(null)
+  const navRef      = useRef(null)
   const location    = useLocation()
   const navigate    = useNavigate()
 
@@ -34,9 +35,17 @@ export default function Navbar() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setThemeOpen(false); setSearch('')
       }
+      // Close mobile menu when tapping outside the nav
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setMobileOpen(false)
+      }
     }
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    document.addEventListener('touchstart', onClick, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('touchstart', onClick)
+    }
   }, [])
 
   useEffect(() => {
@@ -67,7 +76,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav style={{
+      <nav ref={navRef} style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         background: glassOn ? 'color-mix(in srgb, var(--surface) 55%, transparent)' : 'transparent',
         backdropFilter:       glassOn ? 'blur(22px) saturate(180%)' : 'none',
