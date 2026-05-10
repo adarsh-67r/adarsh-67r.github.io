@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import Avatar from "./Avatar";
 
 const ROLES = ["student. linux enthusiast.", "open source.", "developer."];
 
@@ -60,21 +61,7 @@ export default function Hero() {
         transition={{ duration: 0.5 }}
         style={{ marginBottom: "28px" }}
       >
-        <div
-          style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "50%",
-            background: "var(--surface)",
-            border: "2px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "2rem",
-          }}
-        >
-          🧑‍💻
-        </div>
+        <Avatar size={72} />
       </motion.div>
 
       <motion.div

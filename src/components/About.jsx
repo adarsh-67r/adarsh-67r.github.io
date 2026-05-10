@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Github, Linkedin, Mail } from "lucide-react";
+import Avatar from "./Avatar";
 
 const FETCH_ROWS = [
   { key: "user",   value: "adarsh" },
@@ -280,9 +281,7 @@ export default function About() {
         </h2>
 
         <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div style={{ width: "120px", height: "120px", borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "3rem", flexShrink: 0 }}>
-            🧑‍💻
-          </div>
+          <Avatar size={120} />
           <div style={{ flex: 1, minWidth: "260px" }}>
             <p style={{ color: "var(--text)", fontSize: "0.95rem", fontFamily: "var(--font-body)", lineHeight: 1.8, marginBottom: "24px" }}>
               I&apos;m Adarsh, an undergraduate student at NIT Rourkela.
