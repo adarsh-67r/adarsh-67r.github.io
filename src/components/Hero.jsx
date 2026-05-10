@@ -107,7 +107,6 @@ export default function Hero() {
             fontFamily: "var(--font-mono)",
             fontSize: "clamp(0.8rem, 1.8vw, 0.95rem)",
             color: "var(--muted)",
-            /* Fixed height: one line of text at line-height 1.5 */
             height: "1.5em",
             overflow: "hidden",
             marginBottom: "28px",
@@ -163,7 +162,7 @@ export default function Hero() {
             projects
           </Link>
           <Link
-            to="/blog"
+            to="/posts"
             style={{
               padding: "9px 22px",
               background: "transparent",

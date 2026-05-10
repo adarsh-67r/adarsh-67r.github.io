@@ -18,6 +18,10 @@ export default function PostPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
+    // Reset state on every slug change so stale notFound doesn't block a valid post
+    setContent(null)
+    setNotFound(false)
+    setActiveId('')
     const key = `../content/blog/${slug}.md`
     if (mdModules[key]) {
       mdModules[key]().then(raw => {
@@ -76,7 +80,6 @@ export default function PostPage() {
     <div style={{ minHeight: '100vh', padding: '90px max(24px, calc((100vw - 1100px) / 2)) 80px' }}>
       <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
 
-        {/* On mobile: TOC renders first (order:1 via CSS), article second (order:2) */}
         {headings.length > 0 && (
           <motion.aside className="post-toc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
             ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
@@ -118,9 +121,11 @@ export default function PostPage() {
               components={{
                 h2: ({ children }) => { const id = slugify(String(children)); return <h2 id={id}>{children}</h2> },
                 h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id}>{children}</h3> },
-                code: ({ inline, className, children }) => {
+                code: ({ className, children }) => {
                   const lang = (className || '').replace('language-', '')
-                  if (inline) return <code className="inline-code">{children}</code>
+                  // If no language class and no newlines → inline code
+                  const isInline = !className && !String(children).includes('\n')
+                  if (isInline) return <code className="inline-code">{children}</code>
                   return (
                     <div className="code-block">
                       {lang && <div className="code-lang">{lang}</div>}
@@ -157,12 +162,10 @@ export default function PostPage() {
         .prose-link { color: var(--accent); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
         .prose-link:hover { text-decoration-color: var(--accent); }
 
-        /* Desktop: article left, TOC right */
         .post-layout { }
         .post-article { order: 1; }
         .post-toc    { order: 2; }
 
-        /* Mobile: single column, TOC above article */
         @media (max-width: 768px) {
           .post-layout {
             grid-template-columns: 1fr !important;
@@ -195,5 +198,11 @@ function TocItem({ h, active, onClick }) {
 }
 
 function slugify(text) {
-  return String(text).toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s]+/g, '-')
+  return String(text)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // strip diacritics
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[\s]+/g, '-')
 }

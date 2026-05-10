@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 
 export function useTyping(text, { speed = 42, eraseSpeed = 22, pauseAfter = 1600, delay = 0, loop = false } = {}) {
   const [displayed, setDisplayed] = useState('')
-  const [done, setDone] = useState(false)        // true when one-shot finishes
+  const [done, setDone] = useState(false)
   const [erasing, setErasing] = useState(false)
   const timeoutRef = useRef(null)
 
@@ -17,7 +17,7 @@ export function useTyping(text, { speed = 42, eraseSpeed = 22, pauseAfter = 1600
     setErasing(false)
 
     let i = 0
-    let phase = 'typing' // 'typing' | 'pausing' | 'erasing' | 'waiting'
+    let phase = 'typing'
 
     const clear = () => clearTimeout(timeoutRef.current)
 
@@ -28,7 +28,6 @@ export function useTyping(text, { speed = 42, eraseSpeed = 22, pauseAfter = 1600
           setDisplayed(text.slice(0, i))
           timeoutRef.current = setTimeout(tick, speed)
         } else {
-          // Finished typing
           if (!loop) {
             setDone(true)
             return
@@ -46,7 +45,6 @@ export function useTyping(text, { speed = 42, eraseSpeed = 22, pauseAfter = 1600
           setDisplayed(text.slice(0, i))
           timeoutRef.current = setTimeout(tick, eraseSpeed)
         } else {
-          // Finished erasing
           phase = 'waiting'
           setErasing(false)
           timeoutRef.current = setTimeout(tick, 400)
@@ -59,8 +57,7 @@ export function useTyping(text, { speed = 42, eraseSpeed = 22, pauseAfter = 1600
 
     timeoutRef.current = setTimeout(tick, delay)
     return clear
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, loop])
+  }, [text, loop, speed, eraseSpeed, pauseAfter, delay])
 
   return { displayed, done, erasing }
 }

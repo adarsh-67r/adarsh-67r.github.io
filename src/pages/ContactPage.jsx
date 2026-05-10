@@ -9,16 +9,13 @@ const SOCIALS = [
   { icon: Mail,     label: 'Email',    handle: 'adarshanshuman6@gmail.com', href: 'mailto:adarshanshuman6@gmail.com',           desc: 'For serious stuff' },
 ]
 
-// Authentic Linux ping output — fixed height, no layout shift
 function PingOutput() {
   const [lines, setLines] = useState([])
   const timerRef = useRef(null)
   const seqRef = useRef(0)
 
   useEffect(() => {
-    const header = [
-      'PING adarsh (127.0.0.1) 56(84) bytes of data.',
-    ]
+    const header = ['PING adarsh (127.0.0.1) 56(84) bytes of data.']
     setLines(header)
 
     function addPing() {
@@ -63,6 +60,12 @@ function PingOutput() {
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const [sent, setSent] = useState(false)
+  const sentTimerRef = useRef(null)
+
+  // Clear the reset-timer if the component unmounts before it fires
+  useEffect(() => {
+    return () => clearTimeout(sentTimerRef.current)
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -70,7 +73,7 @@ export default function ContactPage() {
     const body = encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`)
     window.open(`mailto:adarshanshuman6@gmail.com?subject=${subject}&body=${body}`, '_blank')
     setSent(true)
-    setTimeout(() => setSent(false), 4000)
+    sentTimerRef.current = setTimeout(() => setSent(false), 4000)
   }
 
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -85,26 +88,21 @@ export default function ContactPage() {
           Have something interesting to say, a project idea, or just want to chat? I'm usually reachable.
         </p>
 
-        {/* Ping terminal — fixed height, no scroll jump */}
         <div style={{ padding: '14px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '48px' }}>
-          {/* Terminal title bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5f57', display: 'inline-block' }} />
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#febc2e', display: 'inline-block' }} />
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#28c840', display: 'inline-block' }} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', marginLeft: '8px', opacity: 0.6 }}>bash — adarsh@localhost</span>
           </div>
-          {/* The prompt that kicked it off */}
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', marginBottom: '4px' }}>
             <span style={{ color: 'var(--accent)', opacity: 0.55 }}>$ </span>ping adarsh
           </div>
           <PingOutput />
         </div>
 
-        {/* 2-col grid on desktop, 1-col on mobile */}
         <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'start' }}>
 
-          {/* Social cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '4px' }}>find me on</p>
             {SOCIALS.map((s, i) => (
@@ -132,7 +130,6 @@ export default function ContactPage() {
             ))}
           </div>
 
-          {/* Message form */}
           <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px' }}>send a message</p>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

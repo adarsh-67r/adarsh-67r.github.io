@@ -95,7 +95,16 @@ export default function Navbar() {
                 transition: 'all 0.2s',
               }}
                 onMouseEnter={e => { if (!isActive(to)) { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}}
-                onMouseLeave={e => { if (!isActive(to)) { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.background = 'transparent' }}}
+                onMouseLeave={e => {
+                  if (!isActive(to)) {
+                    e.currentTarget.style.color = 'var(--muted)'
+                    e.currentTarget.style.background = 'transparent'
+                  } else {
+                    // Restore active styles that inline hover may have overwritten
+                    e.currentTarget.style.color = 'var(--accent)'
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)'
+                  }
+                }}
               >{label}</Link>
             ))}
           </div>
