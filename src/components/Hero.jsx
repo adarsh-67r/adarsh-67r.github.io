@@ -109,7 +109,6 @@ export default function Hero() {
           Adarsh
         </h1>
 
-        {/* Typewriter — fixed height so the loop never causes layout shift */}
         <div
           style={{
             fontFamily: "var(--font-mono)",
@@ -123,7 +122,6 @@ export default function Hero() {
           }}
         >
           <span>{displayed}</span>
-          {/* 7px block cursor — matches TerminalCmd and whoami */}
           <span
             style={{
               display: "inline-block",
@@ -193,12 +191,11 @@ export default function Hero() {
               e.currentTarget.style.color = "var(--text)";
             }}
           >
-            blog
+            posts
           </Link>
         </div>
       </motion.div>
 
-      {/* Separate wrapper divs so Framer fade and CSS bounce don’t fight on the same element */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
