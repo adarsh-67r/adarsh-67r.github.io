@@ -100,7 +100,6 @@ export default function Navbar() {
                     e.currentTarget.style.color = 'var(--muted)'
                     e.currentTarget.style.background = 'transparent'
                   } else {
-                    // Restore active styles that inline hover may have overwritten
                     e.currentTarget.style.color = 'var(--accent)'
                     e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)'
                   }
@@ -113,20 +112,22 @@ export default function Navbar() {
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => { setThemeOpen(!themeOpen); setMobileOpen(false) }}
+                aria-label={`Theme: ${active?.name || 'select theme'}`}
                 title={active?.name || 'Theme'}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', background: 'color-mix(in srgb, var(--surface) 60%, transparent)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
               >
-                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: active?.accent || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
-                <Palette size={13} />
-                <ChevronDown size={11} style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: active?.accent || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
+                <Palette size={13} aria-hidden="true" />
+                <ChevronDown size={11} style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} aria-hidden="true" />
               </button>
 
               {themeOpen && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '220px', maxHeight: '380px', background: 'color-mix(in srgb, var(--surface) 75%, transparent)', backdropFilter: 'blur(28px) saturate(180%)', WebkitBackdropFilter: 'blur(28px) saturate(180%)', border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--border))', borderRadius: '12px', boxShadow: '0 20px 60px color-mix(in srgb, var(--bg) 75%, transparent)', overflow: 'hidden', display: 'flex', flexDirection: 'column', zIndex: 200, animation: 'dropdownIn 0.18s cubic-bezier(0.16,1,0.3,1)' }}>
                   <div style={{ padding: '10px', borderBottom: '1px solid var(--border)' }}>
                     <input autoFocus placeholder="search themes..." value={search} onChange={e => setSearch(e.target.value)}
+                      aria-label="Search themes"
                       style={{ width: '100%', padding: '6px 10px', background: 'color-mix(in srgb, var(--bg) 70%, transparent)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }}
                     />
                   </div>
@@ -150,7 +151,7 @@ export default function Navbar() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
             >
-              {mobileOpen ? <X size={17} /> : <Menu size={17} />}
+              {mobileOpen ? <X size={17} aria-hidden="true" /> : <Menu size={17} aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -188,9 +189,9 @@ function ThemeOption({ theme, current, onSelect }) {
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
     >
-      <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.accent, flexShrink: 0, border: '2px solid rgba(255,255,255,0.1)' }} />
+      <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.accent, flexShrink: 0, border: '2px solid rgba(255,255,255,0.1)' }} aria-hidden="true" />
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{theme.name}</span>
-      {isActive && <Check size={12} />}
+      {isActive && <Check size={12} aria-hidden="true" />}
     </button>
   )
 }

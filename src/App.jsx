@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import { HelmetProvider } from 'react-helmet-async'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -21,25 +22,27 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <div className="grain">
-        <CursorGlow />
-        <Navbar />
-        <ScrollToTop />
-        <main>
-          <Routes>
-            <Route path="/"             element={<Home />} />
-            <Route path="/projects"     element={<ProjectsPage />} />
-            <Route path="/posts"        element={<PostsPage />} />
-            <Route path="/posts/:slug"  element={<PostPage />} />
-            <Route path="/contact"      element={<ContactPage />} />
-            {/* legacy blog redirects */}
-            <Route path="/blog"         element={<PostsPage />} />
-            <Route path="/blog/:slug"   element={<PostPage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider>
+        <div className="grain">
+          <CursorGlow />
+          <Navbar />
+          <ScrollToTop />
+          <main>
+            <Routes>
+              <Route path="/"             element={<Home />} />
+              <Route path="/projects"     element={<ProjectsPage />} />
+              <Route path="/posts"        element={<PostsPage />} />
+              <Route path="/posts/:slug"  element={<PostPage />} />
+              <Route path="/contact"      element={<ContactPage />} />
+              {/* legacy blog redirects */}
+              <Route path="/blog"         element={<PostsPage />} />
+              <Route path="/blog/:slug"   element={<PostPage />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </ThemeProvider>
+    </HelmetProvider>
   )
 }

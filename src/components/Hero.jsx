@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const ROLES = ["student. linux enthusiast.", "open source.", "developer."];
 
@@ -46,6 +47,13 @@ export default function Hero() {
         position: "relative",
       }}
     >
+      <Helmet>
+        <title>Adarsh</title>
+        <meta name="description" content="Personal site of Adarsh — student, developer, linux enthusiast." />
+        <meta property="og:title" content="Adarsh" />
+        <meta property="og:description" content="Personal site of Adarsh — student, developer, linux enthusiast." />
+      </Helmet>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -83,7 +91,7 @@ export default function Hero() {
             letterSpacing: "0.06em",
           }}
         >
-          hi, i'm
+          hi, i&apos;m
         </p>
 
         <h1
@@ -115,15 +123,17 @@ export default function Hero() {
           }}
         >
           <span>{displayed}</span>
+          {/* 7px block cursor — matches TerminalCmd and whoami */}
           <span
             style={{
               display: "inline-block",
-              width: "2px",
+              width: "7px",
               height: "1em",
               background: "var(--accent)",
-              marginLeft: "2px",
+              marginLeft: "3px",
               verticalAlign: "text-bottom",
               animation: "blink 1s step-end infinite",
+              borderRadius: "1px",
               flexShrink: 0,
             }}
           />
@@ -139,7 +149,7 @@ export default function Hero() {
             marginBottom: "36px",
           }}
         >
-          Hello World!
+          Undergraduate at NIT Rourkela. Into programming, math, and building things.
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -188,6 +198,7 @@ export default function Hero() {
         </div>
       </motion.div>
 
+      {/* Separate wrapper divs so Framer fade and CSS bounce don’t fight on the same element */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -197,20 +208,12 @@ export default function Hero() {
           bottom: "40px",
           left: "50%",
           transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          color: "var(--muted)",
-          animation: "bounce 2s ease-in-out infinite",
         }}
       >
-        <ArrowDown size={15} />
+        <div style={{ animation: "bounce 2s ease-in-out infinite", color: "var(--muted)" }}>
+          <ArrowDown size={15} aria-hidden="true" />
+        </div>
       </motion.div>
-
-      <style>{`
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(7px)} }
-      `}</style>
     </section>
   );
 }
