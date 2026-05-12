@@ -6,6 +6,16 @@ import { posts } from '../data/posts'
 import TerminalCmd from '../components/TerminalCmd'
 import TagBadge from '../components/TagBadge'
 
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+}
+
 export default function PostsPage() {
   const [activeTag, setActiveTag] = useState(null)
   const allTags = [...new Set(posts.flatMap(p => p.tags || []))]
@@ -39,12 +49,18 @@ export default function PostsPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <motion.div
+          key={activeTag}
+          variants={container}
+          initial="hidden"
+          animate="show"
+          style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+        >
           {filtered.length === 0 && (
             <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>no posts yet.</p>
           )}
-          {filtered.map((post, i) => (
-            <motion.div key={post.slug} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+          {filtered.map((post) => (
+            <motion.div key={post.slug} variants={item}>
               <Link
                 to={`/posts/${post.slug}`}
                 className="post-row"
@@ -58,7 +74,7 @@ export default function PostsPage() {
               </Link>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   )
