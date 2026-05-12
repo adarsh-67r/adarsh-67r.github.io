@@ -35,7 +35,6 @@ export default function Navbar() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setThemeOpen(false); setSearch('')
       }
-      // Close mobile menu when tapping outside the nav
       if (navRef.current && !navRef.current.contains(e.target)) {
         setMobileOpen(false)
       }
@@ -46,6 +45,25 @@ export default function Navbar() {
       document.removeEventListener('mousedown', onClick)
       document.removeEventListener('touchstart', onClick)
     }
+  }, [])
+
+  // T keyboard shortcut to toggle theme picker
+  useEffect(() => {
+    const onKey = (e) => {
+      // ignore if user is typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
+      if (e.key === 't' || e.key === 'T') {
+        setThemeOpen(prev => !prev)
+        setMobileOpen(false)
+        setSearch('')
+      }
+      if (e.key === 'Escape') {
+        setThemeOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [])
 
   useEffect(() => {
@@ -122,7 +140,7 @@ export default function Navbar() {
               <button
                 onClick={() => { setThemeOpen(!themeOpen); setMobileOpen(false) }}
                 aria-label={`Theme: ${active?.name || 'select theme'}`}
-                title={active?.name || 'Theme'}
+                title={`${active?.name || 'Theme'} — press T`}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', background: 'color-mix(in srgb, var(--surface) 60%, transparent)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
@@ -139,6 +157,10 @@ export default function Navbar() {
                       aria-label="Search themes"
                       style={{ width: '100%', padding: '6px 10px', background: 'color-mix(in srgb, var(--bg) 70%, transparent)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }}
                     />
+                  </div>
+                  <div style={{ padding: '6px 12px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>press T to toggle</span>
+                    <kbd style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--muted)', background: 'color-mix(in srgb, var(--text) 8%, transparent)', border: '1px solid var(--border)', borderRadius: '3px', padding: '1px 5px' }}>T</kbd>
                   </div>
                   <div style={{ overflowY: 'auto', flex: 1 }}>
                     {darkThemes.length > 0 && (<>

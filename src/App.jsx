@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -30,7 +31,28 @@ function PageLoader() {
   )
 }
 
+const pageVariants = {
+  initial:  { opacity: 0, y: 10 },
+  animate:  { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] } },
+  exit:     { opacity: 0, y: -6, transition: { duration: 0.18, ease: 'easeIn' } },
+}
+
+function PageWrapper({ children }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export default function App() {
+  const location = useLocation()
+
   return (
     <HelmetProvider>
       <ThemeProvider>
@@ -40,14 +62,16 @@ export default function App() {
           <ScrollToTop />
           <main style={{ flex: 1 }}>
             <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/"            element={<Home />} />
-                <Route path="/projects"    element={<ProjectsPage />} />
-                <Route path="/posts"       element={<PostsPage />} />
-                <Route path="/posts/:slug" element={<PostPage />} />
-                <Route path="/contact"     element={<ContactPage />} />
-                <Route path="*"            element={<NotFound />} />
-              </Routes>
+              <AnimatePresence mode="wait">
+                <Routes location={location} key={location.pathname}>
+                  <Route path="/"            element={<PageWrapper><Home /></PageWrapper>} />
+                  <Route path="/projects"    element={<PageWrapper><ProjectsPage /></PageWrapper>} />
+                  <Route path="/posts"       element={<PageWrapper><PostsPage /></PageWrapper>} />
+                  <Route path="/posts/:slug" element={<PageWrapper><PostPage /></PageWrapper>} />
+                  <Route path="/contact"     element={<PageWrapper><ContactPage /></PageWrapper>} />
+                  <Route path="*"            element={<PageWrapper><NotFound /></PageWrapper>} />
+                </Routes>
+              </AnimatePresence>
             </Suspense>
           </main>
           <Footer />
