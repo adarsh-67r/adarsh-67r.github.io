@@ -115,6 +115,49 @@ button { cursor: pointer; background: none; border: none; }
 }
 .spin { animation: spin 1s linear infinite; }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.blink { animation: blink 1s step-end infinite; }
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(6px); }
+}
+.bounce { animation: bounce 2s ease-in-out infinite; }
+
+/* ─── BUTTONS ─────────────────────────────────────────────── */
+.btn {
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s, border-color 0.2s, color 0.2s, background 0.2s;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+}
+.btn-primary:hover { opacity: 0.82; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ─── PROJECT CARDS ───────────────────────────────────────── */
 .project-card {
   padding: 24px;
@@ -179,7 +222,7 @@ button { cursor: pointer; background: none; border: none; }
 }
 .card-link--solid:hover { opacity: 0.85; }
 
-/* ─── TAB BUTTON ──────────────────────────────────────────── */
+/* ─── TAB BUTTON ─────────────────────────────────────────── */
 .tab-btn {
   display: flex;
   align-items: center;
@@ -200,3 +243,25 @@ button { cursor: pointer; background: none; border: none; }
   color: var(--bg);
 }
 .tab-btn--active:hover { color: var(--bg); }
+
+/* ─── TAG FILTER BUTTONS ───────────────────────────────────── */
+.tag-filter-btn {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.tag-filter-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.tag-filter-btn--active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
