@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail } from "lucide-react";
-import { GithubIcon, LinkedinIcon } from "./Icons";
+import { Envelope, GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 import Avatar from "./Avatar";
 
 const FETCH_ROWS = [
@@ -293,9 +292,9 @@ export default function About() {
             </p>
             <div style={{ display: "flex", gap: "10px" }}>
               {[
-                { href: "https://github.com/adarsh-67r",        icon: <GithubIcon size={17} />,   label: "GitHub" },
-                { href: "https://www.linkedin.com/in/adarsh67", icon: <LinkedinIcon size={17} />, label: "LinkedIn" },
-                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Mail size={17} />,         label: "Email" },
+                { href: "https://github.com/adarsh-67r",        icon: <GithubLogo size={17} weight="regular" />,   label: "GitHub" },
+                { href: "https://www.linkedin.com/in/adarsh67", icon: <LinkedinLogo size={17} weight="regular" />, label: "LinkedIn" },
+                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Envelope size={17} weight="regular" />,         label: "Email" },
               ].map(({ href, icon, label }) => (
                 <a
                   key={label}

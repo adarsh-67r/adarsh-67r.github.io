@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Star, GitFork, Loader2, Sparkles, Code2 } from 'lucide-react'
-import { GithubIcon } from './Icons'
+import { ArrowSquareOut, Code, GitFork, GithubLogo, Sparkle, SpinnerGap, Star } from '@phosphor-icons/react'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
 import TagBadge from './TagBadge'
 import TerminalCmd from './TerminalCmd'
@@ -63,8 +62,8 @@ export default function Projects() {
         <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 400, fontStyle: 'italic', fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '32px', letterSpacing: '-0.01em' }}>projects</h2>
 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '36px', background: 'var(--surface)', padding: '4px', borderRadius: '10px', width: 'fit-content', border: '1px solid var(--border)' }}>
-          <TabBtn active={tab === 'featured'}   onClick={() => setTab('featured')}   icon={<Sparkles size={13} />} label="Featured" />
-          <TabBtn active={tab === 'opensource'} onClick={() => setTab('opensource')} icon={<Code2    size={13} />} label="Open Source" />
+          <TabBtn active={tab === 'featured'}   onClick={() => setTab('featured')}   icon={<Sparkle size={13} weight="regular" />} label="Featured" />
+          <TabBtn active={tab === 'opensource'} onClick={() => setTab('opensource')} icon={<Code    size={13} weight="regular" />} label="Open Source" />
         </div>
 
         {tab === 'featured' && (
@@ -85,7 +84,7 @@ export default function Projects() {
             <ActivityGraph data={activity} loading={activityLoading} />
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted)', padding: '48px 0' }}>
-                <Loader2 size={16} className="spin" />
+                <SpinnerGap size={16} weight="regular" className="spin" />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>fetching repos...</span>
               </div>
             )}
@@ -132,7 +131,7 @@ function ActivityGraph({ data, loading }) {
       </div>
       {loading && (
         <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
-          <Loader2 size={13} className="spin" />
+          <SpinnerGap size={13} weight="regular" className="spin" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>loading activity...</span>
         </div>
       )}
@@ -201,12 +200,12 @@ function FeaturedCard({ project }) {
       <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
         {project.github && (
           <a href={project.github} target="_blank" rel="noopener noreferrer" className="card-link card-link--ghost">
-            <GithubIcon size={13} /> source
+            <GithubLogo size={13} weight="regular" /> source
           </a>
         )}
         {project.live && (
           <a href={project.live} target="_blank" rel="noopener noreferrer" className="card-link card-link--solid">
-            <ExternalLink size={13} /> live demo
+            <ArrowSquareOut size={13} weight="regular" /> live demo
           </a>
         )}
       </div>
@@ -220,7 +219,7 @@ function RepoCard({ repo }) {
     <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="repo-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent)' }}>{repo.name}</span>
-        <GithubIcon size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
+        <GithubLogo size={13} weight="regular" style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
       </div>
       {repo.description && <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-body)', lineHeight: 1.5 }}>{repo.description}</p>}
       <div style={{ display: 'flex', gap: '14px', marginTop: 'auto' }}>
@@ -230,8 +229,8 @@ function RepoCard({ repo }) {
             {repo.language}
           </span>
         )}
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--muted)' }}><Star size={11} />{repo.stargazers_count}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--muted)' }}><GitFork size={11} />{repo.forks_count}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--muted)' }}><Star size={11} weight="regular" />{repo.stargazers_count}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--muted)' }}><GitFork size={11} weight="regular" />{repo.forks_count}</span>
       </div>
     </a>
   )

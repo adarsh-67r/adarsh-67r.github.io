@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Palette, ChevronDown, Check, Menu, X } from 'lucide-react'
+import { Palette, CaretDown, Check, List, X } from '@phosphor-icons/react'
 
 const NAV_LINKS = [
   { label: 'home',     to: '/' },
@@ -160,8 +160,8 @@ export default function Navbar() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
               >
                 <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: active?.accent || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
-                <Palette size={13} aria-hidden="true" />
-                <ChevronDown size={11} style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} aria-hidden="true" />
+                <Palette size={13} weight="regular" aria-hidden="true" />
+                <CaretDown size={11} weight="regular" style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} aria-hidden="true" />
               </button>
 
               {themeOpen && (
@@ -208,7 +208,7 @@ export default function Navbar() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
             >
-              {mobileOpen ? <X size={17} aria-hidden="true" /> : <Menu size={17} aria-hidden="true" />}
+              {mobileOpen ? <X size={17} weight="bold" aria-hidden="true" /> : <List size={17} weight="bold" aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -248,7 +248,7 @@ function ThemeOption({ theme, current, onSelect }) {
     >
       <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.accent, flexShrink: 0, border: '2px solid rgba(255,255,255,0.1)' }} aria-hidden="true" />
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{theme.name}</span>
-      {isActive && <Check size={12} aria-hidden="true" />}
+      {isActive && <Check size={12} weight="bold" aria-hidden="true" />}
     </button>
   )
 }

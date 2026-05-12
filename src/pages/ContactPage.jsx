@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
-import { GithubLogo, LinkedinLogo, Envelope } from '@phosphor-icons/react'
+import { ArrowRight, Envelope, GithubLogo, LinkedinLogo } from '@phosphor-icons/react'
 import { Helmet } from 'react-helmet-async'
 import TerminalCmd from '../components/TerminalCmd'
 
@@ -99,13 +98,13 @@ export default function ContactPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}
             >
               <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
-                <s.icon size={16} aria-hidden="true" />
+                <s.icon size={16} weight="regular" aria-hidden="true" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', marginBottom: '2px' }}>{s.label}</div>
                 <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.desc}</div>
               </div>
-              <ArrowRight size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} aria-hidden="true" />
+              <ArrowRight size={14} weight="regular" style={{ color: 'var(--muted)', flexShrink: 0 }} aria-hidden="true" />
             </motion.a>
           ))}
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import { ArrowLeft, Calendar, Tag, List, Copy, Check } from 'lucide-react'
+import { ArrowLeft, CalendarBlank, Check, Copy, List, Tag } from '@phosphor-icons/react'
 import { posts } from '../data/posts'
 import '../styles/post.css'
 
@@ -73,7 +73,7 @@ function CodeBlock({ className, children }) {
           onClick={handleCopy}
           aria-label={copied ? 'Copied' : 'Copy code'}
         >
-          {copied ? <Check size={13} /> : <Copy size={13} />}
+          {copied ? <Check size={13} weight="bold" /> : <Copy size={13} weight="regular" />}
           <span>{copied ? 'copied' : 'copy'}</span>
         </button>
       </div>
@@ -173,7 +173,7 @@ export default function PostPage() {
               ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
-                <List size={12} aria-hidden="true" /> on this page
+                <List size={12} weight="regular" aria-hidden="true" /> on this page
               </div>
               {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
             </motion.aside>
@@ -181,7 +181,7 @@ export default function PostPage() {
 
           <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <Link to="/posts" className="post-back">
-              <ArrowLeft size={14} aria-hidden="true" /> back to posts
+              <ArrowLeft size={14} weight="regular" aria-hidden="true" /> back to posts
             </Link>
 
             <div style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid var(--border)' }}>
@@ -191,12 +191,12 @@ export default function PostPage() {
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {meta?.published && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
-                    <Calendar size={12} aria-hidden="true" /> {meta.published}
+                    <CalendarBlank size={12} weight="regular" aria-hidden="true" /> {meta.published}
                   </span>
                 )}
                 {meta?.tags?.map(tag => (
                   <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                    <Tag size={11} aria-hidden="true" /> {tag}
+                    <Tag size={11} weight="regular" aria-hidden="true" /> {tag}
                   </span>
                 ))}
               </div>

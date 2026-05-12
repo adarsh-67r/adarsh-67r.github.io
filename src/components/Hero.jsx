@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Avatar from "./Avatar";
@@ -155,7 +155,7 @@ export default function Hero() {
         }}
       >
         <div className="bounce" style={{ color: "var(--muted)" }}>
-          <ArrowDown size={15} aria-hidden="true" />
+          <ArrowDown size={15} weight="regular" aria-hidden="true" />
         </div>
       </motion.div>
     </section>
