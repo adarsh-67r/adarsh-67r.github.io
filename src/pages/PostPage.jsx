@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import { ArrowLeft, Calendar, Tag, List } from 'lucide-react'
+import { ArrowLeft, Calendar, Tag, List, Copy, Check } from 'lucide-react'
 import { posts } from '../data/posts'
 import '../styles/post.css'
 
@@ -17,8 +17,31 @@ import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
 
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
 
+function ReadingProgress() {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const update = () => {
+      const scrollTop = window.scrollY
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0)
+    }
+    window.addEventListener('scroll', update, { passive: true })
+    update()
+    return () => window.removeEventListener('scroll', update)
+  }, [])
+
+  return (
+    <div className="progress-bar-track">
+      <div className="progress-bar" style={{ width: `${progress}%` }} />
+    </div>
+  )
+}
+
 function CodeBlock({ className, children }) {
   const [style, setStyle] = useState(oneDarkStyle)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     if (!oneDarkStyle) {
       import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
@@ -32,10 +55,29 @@ function CodeBlock({ className, children }) {
   const isInline = !className && !String(children).includes('\n')
   if (isInline) return <code className="inline-code">{children}</code>
 
+  const code = String(children).replace(/\n$/, '')
+
+  function handleCopy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   return (
     <div className="code-block">
-      {lang && <div className="code-lang">{lang}</div>}
-      <Suspense fallback={<pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{String(children).replace(/\n$/, '')}</code></pre>}>
+      <div className="code-block-header">
+        {lang && <span className="code-lang">{lang}</span>}
+        <button
+          className={`copy-btn${copied ? ' copy-btn--copied' : ''}`}
+          onClick={handleCopy}
+          aria-label={copied ? 'Copied' : 'Copy code'}
+        >
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+          <span>{copied ? 'copied' : 'copy'}</span>
+        </button>
+      </div>
+      <Suspense fallback={<pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{code}</code></pre>}>
         {style ? (
           <SyntaxHighlighter
             language={lang || 'text'}
@@ -43,10 +85,10 @@ function CodeBlock({ className, children }) {
             customStyle={{ margin: 0, borderRadius: 0, background: 'var(--surface)', fontSize: '0.875rem', lineHeight: 1.65 }}
             PreTag="div"
           >
-            {String(children).replace(/\n$/, '')}
+            {code}
           </SyntaxHighlighter>
         ) : (
-          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{String(children).replace(/\n$/, '')}</code></pre>
+          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{code}</code></pre>
         )}
       </Suspense>
     </div>
@@ -121,61 +163,62 @@ export default function PostPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '90px max(24px, calc((100vw - 1100px) / 2)) 80px' }}>
-      <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
+    <>
+      <ReadingProgress />
+      <div style={{ minHeight: '100vh', padding: '90px max(24px, calc((100vw - 1100px) / 2)) 80px' }}>
+        <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
 
-        {headings.length > 0 && (
-          <motion.aside className="post-toc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-            ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
-              <List size={12} aria-hidden="true" /> on this page
-            </div>
-            {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
-          </motion.aside>
-        )}
-
-        <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <Link to="/posts" className="post-back"
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
-            <ArrowLeft size={14} aria-hidden="true" /> back to posts
-          </Link>
-
-          <div style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid var(--border)' }}>
-            <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.25, marginBottom: '16px' }}>
-              {meta?.title || slug}
-            </h1>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {meta?.published && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
-                  <Calendar size={12} aria-hidden="true" /> {meta.published}
-                </span>
-              )}
-              {meta?.tags?.map(tag => (
-                <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                  <Tag size={11} aria-hidden="true" /> {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="prose">
-            <ReactMarkdown
-              components={{
-                h2: ({ children }) => { const id = slugify(String(children)); return <h2 id={id}>{children}</h2> },
-                h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id}>{children}</h3> },
-                code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock>,
-                blockquote: ({ children }) => <blockquote className="blockquote">{children}</blockquote>,
-                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="prose-link">{children}</a>,
-              }}
+          {headings.length > 0 && (
+            <motion.aside className="post-toc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
+              ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
             >
-              {content}
-            </ReactMarkdown>
-          </div>
-        </motion.article>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
+                <List size={12} aria-hidden="true" /> on this page
+              </div>
+              {headings.map(h => <TocItem key={h.id} h={h} active={activeId === h.id} onClick={() => scrollToId(h.id)} />)}
+            </motion.aside>
+          )}
+
+          <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Link to="/posts" className="post-back">
+              <ArrowLeft size={14} aria-hidden="true" /> back to posts
+            </Link>
+
+            <div style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid var(--border)' }}>
+              <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.25, marginBottom: '16px' }}>
+                {meta?.title || slug}
+              </h1>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {meta?.published && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                    <Calendar size={12} aria-hidden="true" /> {meta.published}
+                  </span>
+                )}
+                {meta?.tags?.map(tag => (
+                  <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+                    <Tag size={11} aria-hidden="true" /> {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="prose">
+              <ReactMarkdown
+                components={{
+                  h2: ({ children }) => { const id = slugify(String(children)); return <h2 id={id}>{children}</h2> },
+                  h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id}>{children}</h3> },
+                  code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock>,
+                  blockquote: ({ children }) => <blockquote className="blockquote">{children}</blockquote>,
+                  a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="prose-link">{children}</a>,
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
+          </motion.article>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
