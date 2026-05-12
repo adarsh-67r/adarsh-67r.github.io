@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import { ArrowLeft, Calendar, Tag, List, Copy, Check } from 'lucide-react'
+import { ArrowLeft, Calendar, Tag, List, Copy, Check } from '@phosphor-icons/react'
 import { posts } from '../data/posts'
 import '../styles/post.css'
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Avatar from "./Avatar";
