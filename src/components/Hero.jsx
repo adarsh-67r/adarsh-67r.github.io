@@ -110,6 +110,7 @@ export default function Hero() {
         >
           <span>{displayed}</span>
           <span
+            className="blink"
             style={{
               display: "inline-block",
               width: "7px",
@@ -117,7 +118,6 @@ export default function Hero() {
               background: "var(--accent)",
               marginLeft: "3px",
               verticalAlign: "text-bottom",
-              animation: "blink 1s step-end infinite",
               borderRadius: "1px",
               flexShrink: 0,
             }}
@@ -138,48 +138,8 @@ export default function Hero() {
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <Link
-            to="/projects"
-            style={{
-              padding: "9px 22px",
-              background: "var(--accent)",
-              color: "var(--bg)",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              fontFamily: "var(--font-mono)",
-              transition: "opacity 0.2s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.82")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          >
-            projects
-          </Link>
-          <Link
-            to="/posts"
-            style={{
-              padding: "9px 22px",
-              background: "transparent",
-              color: "var(--text)",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontSize: "0.85rem",
-              fontFamily: "var(--font-mono)",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent)";
-              e.currentTarget.style.color = "var(--accent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
-          >
-            posts
-          </Link>
+          <Link to="/projects" className="btn btn-primary">projects</Link>
+          <Link to="/posts"    className="btn btn-ghost">posts</Link>
         </div>
       </motion.div>
 
@@ -194,7 +154,7 @@ export default function Hero() {
           transform: "translateX(-50%)",
         }}
       >
-        <div style={{ animation: "bounce 2s ease-in-out infinite", color: "var(--muted)" }}>
+        <div className="bounce" style={{ color: "var(--muted)" }}>
           <ArrowDown size={15} aria-hidden="true" />
         </div>
       </motion.div>

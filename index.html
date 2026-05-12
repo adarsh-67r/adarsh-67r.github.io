@@ -16,11 +16,49 @@
         }
       })();
     </script>
+    <!-- FOVT fix: apply saved theme before React renders to avoid flash -->
+    <script>
+      (function() {
+        try {
+          var themes = {
+            'catppuccin-mocha':     { bg:'#1e1e2e', surface:'#181825', text:'#cdd6f4', accent:'#cba6f7', muted:'#9399b2', dark:true  },
+            'catppuccin-macchiato': { bg:'#24273a', surface:'#1e2030', text:'#cad3f5', accent:'#c6a0f6', muted:'#939ab7', dark:true  },
+            'catppuccin-frappe':    { bg:'#303446', surface:'#292c3c', text:'#c6d0f5', accent:'#ca9ee6', muted:'#949cbb', dark:true  },
+            'tokyo-night':          { bg:'#1a1b26', surface:'#16161e', text:'#c0caf5', accent:'#7aa2f7', muted:'#8088a4', dark:true  },
+            'tokyo-storm':          { bg:'#24283b', surface:'#1f2335', text:'#c0caf5', accent:'#7aa2f7', muted:'#8088a4', dark:true  },
+            'nord':                 { bg:'#2e3440', surface:'#3b4252', text:'#eceff4', accent:'#88c0d0', muted:'#8fbcbb', dark:true  },
+            'dracula':              { bg:'#282a36', surface:'#21222c', text:'#f8f8f2', accent:'#bd93f9', muted:'#9eaab8', dark:true  },
+            'gruvbox-dark':         { bg:'#282828', surface:'#1d2021', text:'#ebdbb2', accent:'#d79921', muted:'#bdae93', dark:true  },
+            'gruvbox-material':     { bg:'#282828', surface:'#32302f', text:'#e2cca9', accent:'#a9b665', muted:'#a89984', dark:true  },
+            'one-dark':             { bg:'#282c34', surface:'#21252b', text:'#abb2bf', accent:'#61afef', muted:'#848fa5', dark:true  },
+            'rosepine':             { bg:'#191724', surface:'#1f1d2e', text:'#e0def4', accent:'#c4a7e7', muted:'#908caa', dark:true  },
+            'rosepine-moon':        { bg:'#232136', surface:'#2a273f', text:'#e0def4', accent:'#c4a7e7', muted:'#908caa', dark:true  },
+            'kanagawa':             { bg:'#1f1f28', surface:'#16161d', text:'#dcd7ba', accent:'#7e9cd8', muted:'#938aa9', dark:true  },
+            'kanagawa-dragon':      { bg:'#181616', surface:'#1d1c19', text:'#c5c9c5', accent:'#7fb4ca', muted:'#8a9a7b', dark:true  },
+            'gruvbox-light':        { bg:'#fbf1c7', surface:'#f2e5bc', text:'#3c3836', accent:'#b57614', muted:'#7c6f64', dark:false },
+            'catppuccin-latte':     { bg:'#eff1f5', surface:'#e6e9ef', text:'#4c4f69', accent:'#8839ef', muted:'#6c6f85', dark:false },
+            'solarized-light':      { bg:'#fdf6e3', surface:'#eee8d5', text:'#657b83', accent:'#268bd2', muted:'#93a1a1', dark:false },
+            'github-light':         { bg:'#ffffff', surface:'#f6f8fa', text:'#24292f', accent:'#0969da', muted:'#57606a', dark:false },
+          };
+          var saved = localStorage.getItem('theme') || 'catppuccin-mocha';
+          var t = themes[saved] || themes['catppuccin-mocha'];
+          var r = document.documentElement;
+          r.style.setProperty('--bg',            t.bg);
+          r.style.setProperty('--surface',       t.surface);
+          r.style.setProperty('--text',          t.text);
+          r.style.setProperty('--accent',        t.accent);
+          r.style.setProperty('--muted',         t.muted);
+          r.style.setProperty('--border',        t.dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.13)');
+          r.style.setProperty('--border-subtle', t.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)');
+          r.style.setProperty('--selection',     t.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)');
+          r.style.setProperty('--scrollbar',     t.muted);
+        } catch(e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Inter:wght@300..700&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Inter:wght@300..700&display=swap" rel="stylesheet">
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </head>
   <body>
     <div id="root"></div>

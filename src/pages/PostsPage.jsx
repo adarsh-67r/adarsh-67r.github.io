@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { Calendar, Tag } from 'lucide-react'
 import { posts } from '../data/posts'
 import TerminalCmd from '../components/TerminalCmd'
 import TagBadge from '../components/TagBadge'
@@ -26,12 +25,15 @@ export default function PostsPage() {
 
         {allTags.length > 0 && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '40px' }}>
-            <button onClick={() => setActiveTag(null)}
-              style={{ padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border)', background: !activeTag ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent', color: !activeTag ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.2s' }}
+            <button
+              onClick={() => setActiveTag(null)}
+              className={`tag-filter-btn${!activeTag ? ' tag-filter-btn--active' : ''}`}
             >all</button>
             {allTags.map(tag => (
-              <button key={tag} onClick={() => setActiveTag(tag)}
-                style={{ padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border)', background: activeTag === tag ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent', color: activeTag === tag ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.2s' }}
+              <button
+                key={tag}
+                onClick={() => setActiveTag(tag)}
+                className={`tag-filter-btn${activeTag === tag ? ' tag-filter-btn--active' : ''}`}
               >{tag}</button>
             ))}
           </div>
@@ -43,9 +45,10 @@ export default function PostsPage() {
           )}
           {filtered.map((post, i) => (
             <motion.div key={post.slug} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Link to={`/posts/${post.slug}`} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '16px', padding: '14px 0', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text)', transition: 'color 0.2s', flexWrap: 'wrap' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text)'}
+              <Link
+                to={`/posts/${post.slug}`}
+                className="post-row"
+                style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '16px', padding: '14px 0', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text)', flexWrap: 'wrap' }}
               >
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', flex: 1 }}>{post.title}</span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
