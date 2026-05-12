@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Github, Linkedin, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
+import { GithubIcon, LinkedinIcon } from "./Icons";
 import Avatar from "./Avatar";
 
 const FETCH_ROWS = [
@@ -292,9 +293,9 @@ export default function About() {
             </p>
             <div style={{ display: "flex", gap: "10px" }}>
               {[
-                { href: "https://github.com/adarsh-67r",        icon: <Github size={17} />,   label: "GitHub" },
-                { href: "https://www.linkedin.com/in/adarsh67", icon: <Linkedin size={17} />, label: "LinkedIn" },
-                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Mail size={17} />,     label: "Email" },
+                { href: "https://github.com/adarsh-67r",        icon: <GithubIcon size={17} />,   label: "GitHub" },
+                { href: "https://www.linkedin.com/in/adarsh67", icon: <LinkedinIcon size={17} />, label: "LinkedIn" },
+                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Mail size={17} />,         label: "Email" },
               ].map(({ href, icon, label }) => (
                 <a
                   key={label}
