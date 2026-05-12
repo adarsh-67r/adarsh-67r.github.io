@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowSquareOut, Star, GitFork, CircleNotch, Sparkle, Code } from '@phosphor-icons/react'
-import { GithubIcon } from './Icons'
+import { ArrowSquareOut, Star, GitFork, CircleNotch, Sparkle, Code, GithubLogo } from '@phosphor-icons/react'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
 import TagBadge from './TagBadge'
 import TerminalCmd from './TerminalCmd'
@@ -201,7 +200,7 @@ function FeaturedCard({ project }) {
       <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
         {project.github && (
           <a href={project.github} target="_blank" rel="noopener noreferrer" className="card-link card-link--ghost">
-            <GithubIcon size={13} /> source
+            <GithubLogo size={13} /> source
           </a>
         )}
         {project.live && (
@@ -220,7 +219,7 @@ function RepoCard({ repo }) {
     <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="repo-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent)' }}>{repo.name}</span>
-        <GithubIcon size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
+        <GithubLogo size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
       </div>
       {repo.description && <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-body)', lineHeight: 1.5 }}>{repo.description}</p>}
       <div style={{ display: 'flex', gap: '14px', marginTop: 'auto' }}>
