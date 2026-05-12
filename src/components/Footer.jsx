@@ -1,10 +1,10 @@
-import { Mail } from 'lucide-react'
-import { GithubIcon, LinkedinIcon } from './Icons'
+import { Envelope } from '@phosphor-icons/react'
+import { GithubLogo, LinkedinLogo } from '@phosphor-icons/react'
 
 const socials = [
-  { icon: GithubIcon,   label: 'GitHub',   href: 'https://github.com/adarsh-67r' },
-  { icon: LinkedinIcon, label: 'LinkedIn', href: 'https://www.linkedin.com/in/adarsh67' },
-  { icon: Mail,         label: 'Email',    href: 'mailto:adarshanshuman6@gmail.com' },
+  { icon: GithubLogo,   label: 'GitHub',   href: 'https://github.com/adarsh-67r' },
+  { icon: LinkedinLogo, label: 'LinkedIn', href: 'https://www.linkedin.com/in/adarsh67' },
+  { icon: Envelope,     label: 'Email',    href: 'mailto:adarshanshuman6@gmail.com' },
 ]
 
 export default function Footer() {

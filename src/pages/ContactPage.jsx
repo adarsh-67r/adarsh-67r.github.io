@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, ArrowRight } from 'lucide-react'
-import { GithubIcon, LinkedinIcon } from '../components/Icons'
+import { ArrowRight } from 'lucide-react'
+import { GithubLogo, LinkedinLogo, Envelope } from '@phosphor-icons/react'
 import { Helmet } from 'react-helmet-async'
 import TerminalCmd from '../components/TerminalCmd'
 
 const SOCIALS = [
-  { icon: GithubIcon,   label: 'GitHub',   handle: '@adarsh-67r',              href: 'https://github.com/adarsh-67r',             desc: 'Check out my code' },
-  { icon: LinkedinIcon, label: 'LinkedIn', handle: 'linkedin.com/in/adarsh67',  href: 'https://www.linkedin.com/in/adarsh67',      desc: 'Connect professionally' },
-  { icon: Mail,         label: 'Email',    handle: 'adarshanshuman6@gmail.com', href: 'mailto:adarshanshuman6@gmail.com',           desc: 'For serious stuff' },
+  { icon: GithubLogo,   label: 'GitHub',   handle: '@adarsh-67r',              href: 'https://github.com/adarsh-67r',             desc: 'Check out my code' },
+  { icon: LinkedinLogo, label: 'LinkedIn', handle: 'linkedin.com/in/adarsh67',  href: 'https://www.linkedin.com/in/adarsh67',      desc: 'Connect professionally' },
+  { icon: Envelope,     label: 'Email',    handle: 'adarshanshuman6@gmail.com', href: 'mailto:adarshanshuman6@gmail.com',           desc: 'For serious stuff' },
 ]
 
 function PingOutput() {
