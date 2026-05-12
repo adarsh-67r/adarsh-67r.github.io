@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Palette, ChevronDown, Check, Menu, X } from 'lucide-react'
+import { Palette, CaretDown, Check, List, X } from '@phosphor-icons/react'
 
 const NAV_LINKS = [
   { label: 'home',     to: '/' },
@@ -48,7 +48,6 @@ export default function Navbar() {
     }
   }, [])
 
-  // T keyboard shortcut — only fires when NOT typing in an input
   useEffect(() => {
     const onKey = (e) => {
       const tag = e.target.tagName
@@ -161,7 +160,7 @@ export default function Navbar() {
               >
                 <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: active?.accent || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
                 <Palette size={13} aria-hidden="true" />
-                <ChevronDown size={11} style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} aria-hidden="true" />
+                <CaretDown size={11} style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} aria-hidden="true" />
               </button>
 
               {themeOpen && (
@@ -208,7 +207,7 @@ export default function Navbar() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
             >
-              {mobileOpen ? <X size={17} aria-hidden="true" /> : <Menu size={17} aria-hidden="true" />}
+              {mobileOpen ? <X size={17} aria-hidden="true" /> : <List size={17} aria-hidden="true" />}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Star, GitFork, Loader2, Sparkles, Code2 } from 'lucide-react'
+import { ArrowSquareOut, Star, GitFork, CircleNotch, Sparkle, Code } from '@phosphor-icons/react'
 import { GithubIcon } from './Icons'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
 import TagBadge from './TagBadge'
@@ -63,8 +63,8 @@ export default function Projects() {
         <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 400, fontStyle: 'italic', fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '32px', letterSpacing: '-0.01em' }}>projects</h2>
 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '36px', background: 'var(--surface)', padding: '4px', borderRadius: '10px', width: 'fit-content', border: '1px solid var(--border)' }}>
-          <TabBtn active={tab === 'featured'}   onClick={() => setTab('featured')}   icon={<Sparkles size={13} />} label="Featured" />
-          <TabBtn active={tab === 'opensource'} onClick={() => setTab('opensource')} icon={<Code2    size={13} />} label="Open Source" />
+          <TabBtn active={tab === 'featured'}   onClick={() => setTab('featured')}   icon={<Sparkle size={13} />} label="Featured" />
+          <TabBtn active={tab === 'opensource'} onClick={() => setTab('opensource')} icon={<Code    size={13} />} label="Open Source" />
         </div>
 
         {tab === 'featured' && (
@@ -85,7 +85,7 @@ export default function Projects() {
             <ActivityGraph data={activity} loading={activityLoading} />
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted)', padding: '48px 0' }}>
-                <Loader2 size={16} className="spin" />
+                <CircleNotch size={16} className="spin" />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>fetching repos...</span>
               </div>
             )}
@@ -132,7 +132,7 @@ function ActivityGraph({ data, loading }) {
       </div>
       {loading && (
         <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
-          <Loader2 size={13} className="spin" />
+          <CircleNotch size={13} className="spin" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>loading activity...</span>
         </div>
       )}
@@ -206,7 +206,7 @@ function FeaturedCard({ project }) {
         )}
         {project.live && (
           <a href={project.live} target="_blank" rel="noopener noreferrer" className="card-link card-link--solid">
-            <ExternalLink size={13} /> live demo
+            <ArrowSquareOut size={13} /> live demo
           </a>
         )}
       </div>
