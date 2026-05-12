@@ -158,6 +158,25 @@ button { cursor: pointer; background: none; border: none; }
   color: var(--accent);
 }
 
+/* ─── ICON BUTTON ─────────────────────────────────────────── */
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ─── PROJECT CARDS ───────────────────────────────────────── */
 .project-card {
   padding: 24px;

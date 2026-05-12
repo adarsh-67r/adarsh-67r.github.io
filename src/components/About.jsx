@@ -68,15 +68,17 @@ function InlineCommand({ cmd = "whoami", speed = 120, pause = 1400 }) {
     }}>
       <span style={{ opacity: 0.5 }}>$</span>
       <span> {displayed}</span>
-      <span style={{
-        display: "inline-block",
-        width: "7px",
-        height: "1em",
-        background: "var(--accent)",
-        verticalAlign: "text-bottom",
-        animation: "blink 1s step-end infinite",
-        borderRadius: "1px",
-      }} />
+      <span
+        className="blink"
+        style={{
+          display: "inline-block",
+          width: "7px",
+          height: "1em",
+          background: "var(--accent)",
+          verticalAlign: "text-bottom",
+          borderRadius: "1px",
+        }}
+      />
     </p>
   );
 }
@@ -211,7 +213,7 @@ function FastFetchTerminal() {
             {cmdDisplayed}
           </span>
           {fetchCursor && (
-            <span style={{ display: "inline-block", width: "7px", height: "1em", background: "var(--accent)", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
+            <span className="blink" style={{ display: "inline-block", width: "7px", height: "1em", background: "var(--accent)", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px" }} />
           )}
         </div>
 
@@ -251,11 +253,10 @@ function FastFetchTerminal() {
           <span style={{ color: "var(--muted)", opacity: 0.5 }}>$</span>
           <span style={{ color: "#f38ba8", marginLeft: "4px" }}>{rmDisplayed}</span>
           {rmCursor && (
-            <span style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px", animation: "ffBlink 1s step-end infinite" }} />
+            <span className="blink" style={{ display: "inline-block", width: "7px", height: "1em", background: "#f38ba8", verticalAlign: "text-bottom", borderRadius: "1px", marginLeft: "1px" }} />
           )}
         </div>
       </div>
-      <style>{`@keyframes ffBlink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 }
@@ -291,14 +292,17 @@ export default function About() {
             </p>
             <div style={{ display: "flex", gap: "10px" }}>
               {[
-                { href: "https://github.com/adarsh-67r",            icon: <Github size={17} />,   label: "GitHub" },
-                { href: "https://www.linkedin.com/in/adarsh67",     icon: <Linkedin size={17} />, label: "LinkedIn" },
-                { href: "mailto:adarshanshuman6@gmail.com",          icon: <Mail size={17} />,     label: "Email" },
+                { href: "https://github.com/adarsh-67r",        icon: <Github size={17} />,   label: "GitHub" },
+                { href: "https://www.linkedin.com/in/adarsh67", icon: <Linkedin size={17} />, label: "LinkedIn" },
+                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Mail size={17} />,     label: "Email" },
               ].map(({ href, icon, label }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                  style={{ width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "9px", color: "var(--muted)", transition: "all 0.2s", textDecoration: "none" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="icon-btn"
                 >
                   {icon}
                 </a>
