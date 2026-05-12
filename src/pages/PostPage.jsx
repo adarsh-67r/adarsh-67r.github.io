@@ -38,6 +38,7 @@ function ReadingProgress() {
   )
 }
 
+// react-markdown v10: `inline` prop removed — detect by absence of newlines
 function CodeBlock({ className, children }) {
   const [style, setStyle] = useState(oneDarkStyle)
   const [copied, setCopied] = useState(false)
@@ -51,11 +52,11 @@ function CodeBlock({ className, children }) {
     }
   }, [])
 
-  const lang = (className || '').replace('language-', '')
-  const isInline = !className && !String(children).includes('\n')
+  const code = String(children).replace(/\n$/, '')
+  const isInline = !className && !code.includes('\n')
   if (isInline) return <code className="inline-code">{children}</code>
 
-  const code = String(children).replace(/\n$/, '')
+  const lang = (className || '').replace('language-', '')
 
   function handleCopy() {
     navigator.clipboard.writeText(code).then(() => {
