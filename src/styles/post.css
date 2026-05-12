@@ -1,3 +1,20 @@
+/* ── Reading progress bar ────────────────────────────────────── */
+.progress-bar-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  background: transparent;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+  border-radius: 0 2px 2px 0;
+}
+
 /* ── Post page ───────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg) } }
 
@@ -15,8 +32,9 @@
   font-size: 0.8rem; font-family: var(--font-mono);
   margin-bottom: 32px; transition: color 0.2s;
 }
+.post-back:hover { color: var(--accent); }
 
-/* ── Prose ───────────────────────────────────────────────── */
+/* ── Prose ────────────────────────────────────────────────── */
 .prose { color: var(--text); font-size: 0.975rem; line-height: 1.85; }
 .prose h2 { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 2.2em 0 0.8em; padding-top: 0.5em; }
 .prose h3 { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.8em 0 0.6em; }
@@ -33,19 +51,59 @@
   color: var(--accent);
 }
 
+/* ── Code block ──────────────────────────────────────────── */
 .code-block {
-  margin: 1.4em 0; border-radius: 10px;
-  overflow: hidden; border: 1px solid var(--border);
+  margin: 1.4em 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
   background: var(--surface);
 }
-.code-lang {
-  padding: 6px 16px; font-family: var(--font-mono); font-size: 0.7rem;
-  color: var(--muted); background: var(--bg);
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px 5px 16px;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
-  text-transform: uppercase; letter-spacing: 0.08em;
+  min-height: 32px;
 }
 
-/* Muted border — no colored left accent (avoids template look) */
+.code-lang {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.copy-btn--copied {
+  color: #a6e3a1;
+  border-color: #a6e3a1;
+  background: color-mix(in srgb, #a6e3a1 8%, transparent);
+}
+
+/* ── Blockquote ──────────────────────────────────────────── */
 .blockquote {
   border-left: 3px solid var(--border);
   padding: 10px 18px; margin: 1.4em 0;
@@ -56,7 +114,7 @@
 .prose-link { color: var(--accent); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
 .prose-link:hover { text-decoration-color: var(--accent); }
 
-/* ── Layout ──────────────────────────────────────────────── */
+/* ── Layout ────────────────────────────────────────────────── */
 .post-article { order: 1; }
 .post-toc     { order: 2; }
 
