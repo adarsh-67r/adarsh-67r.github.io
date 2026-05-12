@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail } from "lucide-react";
+import { Envelope } from "@phosphor-icons/react";
 import { GithubIcon, LinkedinIcon } from "./Icons";
 import Avatar from "./Avatar";
 
@@ -295,7 +295,7 @@ export default function About() {
               {[
                 { href: "https://github.com/adarsh-67r",        icon: <GithubIcon size={17} />,   label: "GitHub" },
                 { href: "https://www.linkedin.com/in/adarsh67", icon: <LinkedinIcon size={17} />, label: "LinkedIn" },
-                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Mail size={17} />,         label: "Email" },
+                { href: "mailto:adarshanshuman6@gmail.com",      icon: <Envelope size={17} />,     label: "Email" },
               ].map(({ href, icon, label }) => (
                 <a
                   key={label}
