@@ -4,16 +4,17 @@ import { Helmet } from 'react-helmet-async'
 
 export default function NotFound() {
   return (
-    <div style={{ padding: '120px max(24px, calc((100vw - 860px) / 2)) 80px' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.35 }}
+      style={{ padding: '120px max(24px, calc((100vw - 860px) / 2)) 80px' }}
+    >
       <Helmet>
         <title>404 — Adarsh</title>
       </Helmet>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <span style={{ color: 'var(--accent)', opacity: 0.55 }}>$</span>
           <span>cd <span style={{ color: 'var(--accent)' }}>404</span></span>
@@ -25,15 +26,10 @@ export default function NotFound() {
           This page doesn&apos;t exist. Maybe it got <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontSize: '0.85em' }}>rm -rf</code>&apos;d.
         </p>
 
-        <Link
-          to="/"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '8px', padding: '9px 20px', background: 'var(--accent)', borderRadius: '8px', color: 'var(--bg)', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none', width: 'fit-content', transition: 'opacity 0.18s' }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
-        >
+        <Link to="/" className="btn-home">
           ~/home
         </Link>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   )
 }
