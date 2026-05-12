@@ -18,6 +18,7 @@ export default function Navbar() {
   const [search, setSearch]         = useState('')
   const dropdownRef = useRef(null)
   const navRef      = useRef(null)
+  const searchRef   = useRef(null)
   const location    = useLocation()
   const navigate    = useNavigate()
 
@@ -47,24 +48,40 @@ export default function Navbar() {
     }
   }, [])
 
-  // T keyboard shortcut to toggle theme picker
+  // T keyboard shortcut — only fires when NOT typing in an input
   useEffect(() => {
     const onKey = (e) => {
-      // ignore if user is typing in an input/textarea
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
-      if (e.key === 't' || e.key === 'T') {
-        setThemeOpen(prev => !prev)
-        setMobileOpen(false)
+      const tag = e.target.tagName
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable
+
+      if ((e.key === 't' || e.key === 'T') && !typing) {
+        e.preventDefault() // prevent T from being typed anywhere else
+        setThemeOpen(prev => {
+          if (!prev) setMobileOpen(false)
+          return !prev
+        })
         setSearch('')
       }
+
       if (e.key === 'Escape') {
         setThemeOpen(false)
         setSearch('')
+        // blur the search input so focus returns to the page
+        if (searchRef.current) searchRef.current.blur()
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
+
+  // focus search input whenever dropdown opens
+  useEffect(() => {
+    if (themeOpen && searchRef.current) {
+      // slight delay so the dropdown has rendered
+      const t = setTimeout(() => searchRef.current?.focus(), 50)
+      return () => clearTimeout(t)
+    }
+  }, [themeOpen])
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
@@ -138,7 +155,7 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => { setThemeOpen(!themeOpen); setMobileOpen(false) }}
+                onClick={() => { setThemeOpen(prev => !prev); setMobileOpen(false); setSearch('') }}
                 aria-label={`Theme: ${active?.name || 'select theme'}`}
                 title={`${active?.name || 'Theme'} — press T`}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', background: 'color-mix(in srgb, var(--surface) 60%, transparent)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
@@ -153,7 +170,19 @@ export default function Navbar() {
               {themeOpen && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '220px', maxHeight: '380px', background: 'color-mix(in srgb, var(--surface) 75%, transparent)', backdropFilter: 'blur(28px) saturate(180%)', WebkitBackdropFilter: 'blur(28px) saturate(180%)', border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--border))', borderRadius: '12px', boxShadow: '0 20px 60px color-mix(in srgb, var(--bg) 75%, transparent)', overflow: 'hidden', display: 'flex', flexDirection: 'column', zIndex: 200, animation: 'dropdownIn 0.18s cubic-bezier(0.16,1,0.3,1)' }}>
                   <div style={{ padding: '10px', borderBottom: '1px solid var(--border)' }}>
-                    <input autoFocus placeholder="search themes..." value={search} onChange={e => setSearch(e.target.value)}
+                    <input
+                      ref={searchRef}
+                      placeholder="search themes..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          e.stopPropagation()
+                          setThemeOpen(false)
+                          setSearch('')
+                          e.currentTarget.blur()
+                        }
+                      }}
                       aria-label="Search themes"
                       style={{ width: '100%', padding: '6px 10px', background: 'color-mix(in srgb, var(--bg) 70%, transparent)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }}
                     />
