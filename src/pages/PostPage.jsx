@@ -10,10 +10,8 @@ const SyntaxHighlighter = lazy(() =>
   import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
 )
 
+// oneDark is loaded lazily inside CodeBlock — no module-level side-effect needed
 let oneDarkStyle = null
-import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
-  oneDarkStyle = m.oneDark
-})
 
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
 

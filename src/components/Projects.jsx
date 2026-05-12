@@ -53,7 +53,8 @@ export default function Projects() {
           .catch(() => setActivityLoading(false))
       }
     }
-  }, [tab])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, repos.length, activity.length])
 
   return (
     <section id="projects" style={{ padding: '100px max(24px, calc((100vw - 900px) / 2))', borderTop: '1px solid var(--border)' }}>
