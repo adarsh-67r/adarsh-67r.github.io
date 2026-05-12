@@ -4,23 +4,28 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Palette, ChevronDown, Check, Menu, X } from 'lucide-react'
 
 const NAV_LINKS = [
-  { label: 'home',     to: '/' },
-  { label: 'projects', to: '/projects' },
-  { label: 'posts',    to: '/posts' },
-  { label: 'contact',  to: '/contact' },
+  { label: 'home',     to: '/',         section: null       },
+  { label: 'projects', to: '/projects', section: 'projects' },
+  { label: 'posts',    to: '/posts',    section: null       },
+  { label: 'contact',  to: '/contact',  section: 'contact'  },
 ]
+
+// Sections that exist on the homepage (in order)
+const HOME_SECTIONS = ['hero', 'about', 'projects', 'contact']
 
 export default function Navbar() {
   const { currentTheme, setCurrentTheme, themes } = useTheme()
-  const [scrolled, setScrolled]     = useState(false)
-  const [themeOpen, setThemeOpen]   = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [search, setSearch]         = useState('')
+  const [scrolled, setScrolled]         = useState(false)
+  const [themeOpen, setThemeOpen]       = useState(false)
+  const [mobileOpen, setMobileOpen]     = useState(false)
+  const [search, setSearch]             = useState('')
+  const [activeSection, setActiveSection] = useState('hero')
   const dropdownRef = useRef(null)
   const navRef      = useRef(null)
   const searchRef   = useRef(null)
   const location    = useLocation()
   const navigate    = useNavigate()
+  const isHome      = location.pathname === '/'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
@@ -28,6 +33,31 @@ export default function Navbar() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // IntersectionObserver for home section highlight
+  useEffect(() => {
+    if (!isHome) return
+    const observers = []
+    const sectionVisibility = {}
+
+    HOME_SECTIONS.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          sectionVisibility[id] = entry.isIntersecting
+          // pick the first visible section in order
+          const visible = HOME_SECTIONS.find(s => sectionVisibility[s])
+          if (visible) setActiveSection(visible)
+        },
+        { threshold: 0.25 }
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+
+    return () => observers.forEach(o => o.disconnect())
+  }, [isHome])
 
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
@@ -48,14 +78,13 @@ export default function Navbar() {
     }
   }, [])
 
-  // T keyboard shortcut — only fires when NOT typing in an input
   useEffect(() => {
     const onKey = (e) => {
       const tag = e.target.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable
 
       if ((e.key === 't' || e.key === 'T') && !typing) {
-        e.preventDefault() // prevent T from being typed anywhere else
+        e.preventDefault()
         setThemeOpen(prev => {
           if (!prev) setMobileOpen(false)
           return !prev
@@ -66,7 +95,6 @@ export default function Navbar() {
       if (e.key === 'Escape') {
         setThemeOpen(false)
         setSearch('')
-        // blur the search input so focus returns to the page
         if (searchRef.current) searchRef.current.blur()
       }
     }
@@ -74,10 +102,8 @@ export default function Navbar() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  // focus search input whenever dropdown opens
   useEffect(() => {
     if (themeOpen && searchRef.current) {
-      // slight delay so the dropdown has rendered
       const t = setTimeout(() => searchRef.current?.focus(), 50)
       return () => clearTimeout(t)
     }
@@ -93,9 +119,18 @@ export default function Navbar() {
   const lightThemes = filtered.filter(t => !t.dark)
   const active      = themes.find(t => t.value === currentTheme)
 
-  const isActive = (to) => {
-    if (to === '/posts') return location.pathname.startsWith('/posts')
-    return location.pathname === to
+  const isActive = (link) => {
+    if (!isHome) {
+      // on non-home pages: match by pathname
+      if (link.to === '/posts') return location.pathname.startsWith('/posts')
+      return location.pathname === link.to
+    }
+    // on home: highlight nav link whose section is visible
+    if (link.to !== '/') {
+      return link.section ? activeSection === link.section : false
+    }
+    // 'home' link: active when no other section is active
+    return activeSection === 'hero' || activeSection === 'about'
   }
 
   const glassOn = scrolled || mobileOpen
@@ -129,27 +164,30 @@ export default function Navbar() {
           <a href="/" onClick={handleNameClick} style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.35rem', fontWeight: 400, color: 'var(--accent)', textDecoration: 'none', lineHeight: 1 }}>Adarsh</a>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
-            {NAV_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to} style={{
-                padding: '6px 14px', borderRadius: '7px', textDecoration: 'none',
-                fontFamily: 'var(--font-mono)', fontSize: '0.8rem',
-                color:      isActive(to) ? 'var(--accent)' : 'var(--muted)',
-                background: isActive(to) ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                border:     isActive(to) ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent',
-                transition: 'all 0.2s',
-              }}
-                onMouseEnter={e => { if (!isActive(to)) { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}}
-                onMouseLeave={e => {
-                  if (!isActive(to)) {
-                    e.currentTarget.style.color = 'var(--muted)'
-                    e.currentTarget.style.background = 'transparent'
-                  } else {
-                    e.currentTarget.style.color = 'var(--accent)'
-                    e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)'
-                  }
+            {NAV_LINKS.map((link) => {
+              const active = isActive(link)
+              return (
+                <Link key={link.to} to={link.to} style={{
+                  padding: '6px 14px', borderRadius: '7px', textDecoration: 'none',
+                  fontFamily: 'var(--font-mono)', fontSize: '0.8rem',
+                  color:      active ? 'var(--accent)' : 'var(--muted)',
+                  background: active ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+                  border:     active ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent',
+                  transition: 'all 0.2s',
                 }}
-              >{label}</Link>
-            ))}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}}
+                  onMouseLeave={e => {
+                    if (!active) {
+                      e.currentTarget.style.color = 'var(--muted)'
+                      e.currentTarget.style.background = 'transparent'
+                    } else {
+                      e.currentTarget.style.color = 'var(--accent)'
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)'
+                    }
+                  }}
+                >{link.label}</Link>
+              )
+            })}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -218,11 +256,14 @@ export default function Navbar() {
 
         <div style={{ maxHeight: mobileOpen ? '400px' : '0', overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)', borderTop: mobileOpen ? '1px solid color-mix(in srgb, var(--accent) 15%, var(--border))' : '1px solid transparent' }}>
           <div style={{ padding: '12px max(24px, calc((100vw - 900px) / 2)) 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {NAV_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to}
-                style={{ padding: '10px 14px', borderRadius: '8px', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: isActive(to) ? 'var(--accent)' : 'var(--text)', background: isActive(to) ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: isActive(to) ? '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' : '1px solid transparent', transition: 'all 0.15s', display: 'block' }}
-              >{isActive(to) ? '> ' : '  '}{label}</Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const active = isActive(link)
+              return (
+                <Link key={link.to} to={link.to}
+                  style={{ padding: '10px 14px', borderRadius: '8px', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: active ? 'var(--accent)' : 'var(--text)', background: active ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: active ? '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' : '1px solid transparent', transition: 'all 0.15s', display: 'block' }}
+                >{active ? '> ' : '  '}{link.label}</Link>
+              )
+            })}
           </div>
         </div>
       </nav>
