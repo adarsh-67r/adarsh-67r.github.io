@@ -10,18 +10,49 @@ export default function Projects() {
   const [repos, setRepos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [activity, setActivity] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
 
   useEffect(() => {
-    if (tab === 'opensource' && repos.length === 0) {
-      setLoading(true); setError(null)
-      fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=stars&per_page=12&type=public`)
-        .then(r => r.json())
-        .then(data => {
-          if (Array.isArray(data)) setRepos(data.filter(r => !r.fork).slice(0, 9))
-          else setError('Failed to load repos')
-          setLoading(false)
-        })
-        .catch(() => { setError('Failed to load repos'); setLoading(false) })
+    if (tab === 'opensource') {
+      if (repos.length === 0) {
+        setLoading(true); setError(null)
+        fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=stars&per_page=12&type=public`)
+          .then(r => r.json())
+          .then(data => {
+            if (Array.isArray(data)) setRepos(data.filter(r => !r.fork).slice(0, 9))
+            else setError('Failed to load repos')
+            setLoading(false)
+          })
+          .catch(() => { setError('Failed to load repos'); setLoading(false) })
+      }
+      if (activity.length === 0) {
+        setActivityLoading(true)
+        fetch(`https://api.github.com/users/${GITHUB_USERNAME}/events/public?per_page=100`)
+          .then(r => r.json())
+          .then(data => {
+            if (!Array.isArray(data)) { setActivityLoading(false); return }
+            // build a map of date -> commit count for last 30 days
+            const counts = {}
+            const now = new Date()
+            for (let i = 29; i >= 0; i--) {
+              const d = new Date(now)
+              d.setDate(now.getDate() - i)
+              counts[d.toISOString().slice(0, 10)] = 0
+            }
+            data.forEach(e => {
+              if (e.type === 'PushEvent') {
+                const day = e.created_at?.slice(0, 10)
+                if (day && counts[day] !== undefined) {
+                  counts[day] += e.payload?.commits?.length || 1
+                }
+              }
+            })
+            setActivity(Object.entries(counts).map(([date, count]) => ({ date, count })))
+            setActivityLoading(false)
+          })
+          .catch(() => setActivityLoading(false))
+      }
     }
   }, [tab])
 
@@ -51,6 +82,8 @@ export default function Projects() {
 
         {tab === 'opensource' && (
           <div>
+            <ActivityGraph data={activity} loading={activityLoading} />
+
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted)', padding: '48px 0' }}>
                 <Loader2 size={16} className="spin" />
@@ -72,6 +105,89 @@ export default function Projects() {
         )}
       </motion.div>
     </section>
+  )
+}
+
+function ActivityGraph({ data, loading }) {
+  const BAR_W = 10
+  const BAR_GAP = 4
+  const H = 48
+  const max = Math.max(...data.map(d => d.count), 1)
+
+  const formatDate = (iso) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  return (
+    <div style={{ marginBottom: '28px', padding: '16px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.05em' }}>commit activity · last 30 days</span>
+        {!loading && data.length > 0 && (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--accent)' }}>
+            {data.reduce((s, d) => s + d.count, 0)} commits
+          </span>
+        )}
+      </div>
+
+      {loading && (
+        <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
+          <Loader2 size={13} className="spin" />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>loading activity...</span>
+        </div>
+      )}
+
+      {!loading && data.length === 0 && (
+        <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>no activity data</div>
+      )}
+
+      {!loading && data.length > 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <svg
+            width={data.length * (BAR_W + BAR_GAP) - BAR_GAP}
+            height={H + 20}
+            style={{ display: 'block', minWidth: '100%' }}
+            role="img"
+            aria-label="Commit activity over last 30 days"
+          >
+            {data.map((d, i) => {
+              const barH = d.count === 0 ? 2 : Math.max(4, Math.round((d.count / max) * H))
+              const x = i * (BAR_W + BAR_GAP)
+              const y = H - barH
+              const isFirst = i === 0
+              const isLast = i === data.length - 1
+              const showLabel = isFirst || isLast || i === Math.floor(data.length / 2)
+              return (
+                <g key={d.date}>
+                  <title>{`${formatDate(d.date)}: ${d.count} commit${d.count !== 1 ? 's' : ''}`}</title>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={BAR_W}
+                    height={barH}
+                    rx={3}
+                    fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
+                    opacity={d.count === 0 ? 0.5 : Math.max(0.35, d.count / max)}
+                  />
+                  {showLabel && (
+                    <text
+                      x={x + BAR_W / 2}
+                      y={H + 16}
+                      textAnchor="middle"
+                      fontSize="9"
+                      fill="var(--muted)"
+                      fontFamily="var(--font-mono)"
+                    >
+                      {formatDate(d.date)}
+                    </text>
+                  )}
+                </g>
+              )
+            })}
+          </svg>
+        </div>
+      )}
+    </div>
   )
 }
 
