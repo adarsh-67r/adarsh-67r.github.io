@@ -32,7 +32,6 @@ export default function Projects() {
           .then(r => r.json())
           .then(data => {
             if (!Array.isArray(data)) { setActivityLoading(false); return }
-            // build a map of date -> commit count for last 30 days
             const counts = {}
             const now = new Date()
             for (let i = 29; i >= 0; i--) {
@@ -112,7 +111,9 @@ function ActivityGraph({ data, loading }) {
   const BAR_W = 10
   const BAR_GAP = 4
   const H = 48
+  const LABEL_H = 20
   const max = Math.max(...data.map(d => d.count), 1)
+  const totalW = data.length > 0 ? data.length * (BAR_W + BAR_GAP) - BAR_GAP : 0
 
   const formatDate = (iso) => {
     const d = new Date(iso)
@@ -142,50 +143,49 @@ function ActivityGraph({ data, loading }) {
       )}
 
       {!loading && data.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <svg
-            width={data.length * (BAR_W + BAR_GAP) - BAR_GAP}
-            height={H + 20}
-            style={{ display: 'block', minWidth: '100%' }}
-            role="img"
-            aria-label="Commit activity over last 30 days"
-          >
-            {data.map((d, i) => {
-              const barH = d.count === 0 ? 2 : Math.max(4, Math.round((d.count / max) * H))
-              const x = i * (BAR_W + BAR_GAP)
-              const y = H - barH
-              const isFirst = i === 0
-              const isLast = i === data.length - 1
-              const showLabel = isFirst || isLast || i === Math.floor(data.length / 2)
-              return (
-                <g key={d.date}>
-                  <title>{`${formatDate(d.date)}: ${d.count} commit${d.count !== 1 ? 's' : ''}`}</title>
-                  <rect
-                    x={x}
-                    y={y}
-                    width={BAR_W}
-                    height={barH}
-                    rx={3}
-                    fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
-                    opacity={d.count === 0 ? 0.5 : Math.max(0.35, d.count / max)}
-                  />
-                  {showLabel && (
-                    <text
-                      x={x + BAR_W / 2}
-                      y={H + 16}
-                      textAnchor="middle"
-                      fontSize="9"
-                      fill="var(--muted)"
-                      fontFamily="var(--font-mono)"
-                    >
-                      {formatDate(d.date)}
-                    </text>
-                  )}
-                </g>
-              )
-            })}
-          </svg>
-        </div>
+        <svg
+          viewBox={`0 0 ${totalW} ${H + LABEL_H}`}
+          width="100%"
+          style={{ display: 'block' }}
+          role="img"
+          aria-label="Commit activity over last 30 days"
+        >
+          {data.map((d, i) => {
+            const barH = d.count === 0 ? 2 : Math.max(4, Math.round((d.count / max) * H))
+            const x = i * (BAR_W + BAR_GAP)
+            const y = H - barH
+            const isFirst = i === 0
+            const isLast = i === data.length - 1
+            const isMid = i === Math.floor(data.length / 2)
+            const showLabel = isFirst || isLast || isMid
+            return (
+              <g key={d.date}>
+                <title>{`${formatDate(d.date)}: ${d.count} commit${d.count !== 1 ? 's' : ''}`}</title>
+                <rect
+                  x={x}
+                  y={y}
+                  width={BAR_W}
+                  height={barH}
+                  rx={3}
+                  fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
+                  opacity={d.count === 0 ? 0.5 : Math.max(0.35, d.count / max)}
+                />
+                {showLabel && (
+                  <text
+                    x={x + BAR_W / 2}
+                    y={H + 14}
+                    textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
+                    fontSize="9"
+                    fill="var(--muted)"
+                    fontFamily="var(--font-mono)"
+                  >
+                    {formatDate(d.date)}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+        </svg>
       )}
     </div>
   )
