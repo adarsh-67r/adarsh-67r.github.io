@@ -12,6 +12,7 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const PostsPage    = lazy(() => import('./pages/PostsPage'))
 const PostPage     = lazy(() => import('./pages/PostPage'))
 const ContactPage  = lazy(() => import('./pages/ContactPage'))
+const NotFound     = lazy(() => import('./pages/NotFound'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -24,7 +25,7 @@ function ScrollToTop() {
 function PageLoader() {
   return (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+      <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%' }} className="spin" />
     </div>
   )
 }
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/posts"       element={<PostsPage />} />
                 <Route path="/posts/:slug" element={<PostPage />} />
                 <Route path="/contact"     element={<ContactPage />} />
+                <Route path="*"            element={<NotFound />} />
               </Routes>
             </Suspense>
           </main>
