@@ -1,9 +1,10 @@
-import { Github, Linkedin, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
+import { GithubIcon, LinkedinIcon } from './Icons'
 
 const socials = [
-  { icon: Github,   label: 'GitHub',   href: 'https://github.com/adarsh-67r' },
-  { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/in/adarsh67' },
-  { icon: Mail,     label: 'Email',    href: 'mailto:adarshanshuman6@gmail.com' },
+  { icon: GithubIcon,   label: 'GitHub',   href: 'https://github.com/adarsh-67r' },
+  { icon: LinkedinIcon, label: 'LinkedIn', href: 'https://www.linkedin.com/in/adarsh67' },
+  { icon: Mail,         label: 'Email',    href: 'mailto:adarshanshuman6@gmail.com' },
 ]
 
 export default function Footer() {

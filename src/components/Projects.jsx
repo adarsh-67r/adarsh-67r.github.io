@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Github, ExternalLink, Star, GitFork, Loader2, Sparkles, Code2 } from 'lucide-react'
+import { ExternalLink, Star, GitFork, Loader2, Sparkles, Code2 } from 'lucide-react'
+import { GithubIcon } from './Icons'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
 import TagBadge from './TagBadge'
 import TerminalCmd from './TerminalCmd'
@@ -82,7 +83,6 @@ export default function Projects() {
         {tab === 'opensource' && (
           <div>
             <ActivityGraph data={activity} loading={activityLoading} />
-
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted)', padding: '48px 0' }}>
                 <Loader2 size={16} className="spin" />
@@ -130,18 +130,15 @@ function ActivityGraph({ data, loading }) {
           </span>
         )}
       </div>
-
       {loading && (
         <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
           <Loader2 size={13} className="spin" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>loading activity...</span>
         </div>
       )}
-
       {!loading && data.length === 0 && (
         <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>no activity data</div>
       )}
-
       {!loading && data.length > 0 && (
         <svg
           viewBox={`0 0 ${totalW} ${H + LABEL_H}`}
@@ -161,23 +158,14 @@ function ActivityGraph({ data, loading }) {
             return (
               <g key={d.date}>
                 <title>{`${formatDate(d.date)}: ${d.count} commit${d.count !== 1 ? 's' : ''}`}</title>
-                <rect
-                  x={x}
-                  y={y}
-                  width={BAR_W}
-                  height={barH}
-                  rx={3}
+                <rect x={x} y={y} width={BAR_W} height={barH} rx={3}
                   fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
                   opacity={d.count === 0 ? 0.5 : Math.max(0.35, d.count / max)}
                 />
                 {showLabel && (
-                  <text
-                    x={x + BAR_W / 2}
-                    y={H + 14}
+                  <text x={x + BAR_W / 2} y={H + 14}
                     textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
-                    fontSize="9"
-                    fill="var(--muted)"
-                    fontFamily="var(--font-mono)"
+                    fontSize="9" fill="var(--muted)" fontFamily="var(--font-mono)"
                   >
                     {formatDate(d.date)}
                   </text>
@@ -206,17 +194,14 @@ function FeaturedCard({ project }) {
         <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.97rem', fontWeight: 600, color: 'var(--text)' }}>{project.name}</h3>
         <span style={{ padding: '2px 9px', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: '999px', fontSize: '0.65rem', color: 'var(--accent)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>featured</span>
       </div>
-
       <p style={{ color: 'var(--muted)', fontSize: '0.875rem', fontFamily: 'var(--font-body)', lineHeight: 1.65, flex: 1 }}>{project.description}</p>
-
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {project.tags.map(tag => <TagBadge key={tag} tag={tag} />)}
       </div>
-
       <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
         {project.github && (
           <a href={project.github} target="_blank" rel="noopener noreferrer" className="card-link card-link--ghost">
-            <Github size={13} /> source
+            <GithubIcon size={13} /> source
           </a>
         )}
         {project.live && (
@@ -235,7 +220,7 @@ function RepoCard({ repo }) {
     <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="repo-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent)' }}>{repo.name}</span>
-        <Github size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
+        <GithubIcon size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
       </div>
       {repo.description && <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-body)', lineHeight: 1.5 }}>{repo.description}</p>}
       <div style={{ display: 'flex', gap: '14px', marginTop: 'auto' }}>
