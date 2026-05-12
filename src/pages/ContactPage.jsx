@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
-import { GithubLogo, LinkedinLogo, Envelope } from '@phosphor-icons/react'
+import { GithubLogo, LinkedinLogo, Envelope, ArrowRight } from '@phosphor-icons/react'
 import { Helmet } from 'react-helmet-async'
 import TerminalCmd from '../components/TerminalCmd'
 
