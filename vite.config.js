@@ -7,11 +7,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor':  ['react', 'react-dom', 'react-router-dom', 'react-helmet-async'],
-          'motion':        ['framer-motion'],
-          'syntax':        ['react-syntax-highlighter'],
-          'markdown':      ['react-markdown'],
+        manualChunks(id) {
+          if (id.includes('react-syntax-highlighter')) return 'syntax'
+          if (id.includes('react-markdown'))           return 'markdown'
+          if (id.includes('framer-motion'))            return 'motion'
+          if (
+            id.includes('react-dom') ||
+            id.includes('react-router-dom') ||
+            id.includes('react-helmet-async') ||
+            id.includes('node_modules/react/')
+          ) return 'react-vendor'
         },
       },
     },
