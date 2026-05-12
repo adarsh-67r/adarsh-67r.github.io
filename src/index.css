@@ -1,7 +1,12 @@
 /* ── Reset & base ────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body { min-height: 100dvh; }
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
 a { text-decoration: none; }
 img, svg { display: block; max-width: 100%; }
 button { cursor: pointer; }
