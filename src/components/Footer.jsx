@@ -1,5 +1,4 @@
-import { Envelope } from '@phosphor-icons/react'
-import { GithubLogo, LinkedinLogo } from '@phosphor-icons/react'
+import { Envelope, GithubLogo, LinkedinLogo } from '@phosphor-icons/react'
 
 const socials = [
   { icon: GithubLogo,   label: 'GitHub',   href: 'https://github.com/adarsh-67r' },
