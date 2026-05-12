@@ -1,7 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
-import { AnimatePresence } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -31,22 +30,6 @@ function PageLoader() {
   )
 }
 
-function AnimatedRoutes() {
-  const location = useLocation()
-  return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/"            element={<Home />} />
-        <Route path="/projects"    element={<ProjectsPage />} />
-        <Route path="/posts"       element={<PostsPage />} />
-        <Route path="/posts/:slug" element={<PostPage />} />
-        <Route path="/contact"     element={<ContactPage />} />
-        <Route path="*"            element={<NotFound />} />
-      </Routes>
-    </AnimatePresence>
-  )
-}
-
 export default function App() {
   return (
     <HelmetProvider>
@@ -57,7 +40,14 @@ export default function App() {
           <ScrollToTop />
           <main style={{ flex: 1 }}>
             <Suspense fallback={<PageLoader />}>
-              <AnimatedRoutes />
+              <Routes>
+                <Route path="/"            element={<Home />} />
+                <Route path="/projects"    element={<ProjectsPage />} />
+                <Route path="/posts"       element={<PostsPage />} />
+                <Route path="/posts/:slug" element={<PostPage />} />
+                <Route path="/contact"     element={<ContactPage />} />
+                <Route path="*"            element={<NotFound />} />
+              </Routes>
             </Suspense>
           </main>
           <Footer />
