@@ -3,6 +3,7 @@ import { useEffect, lazy, Suspense } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
+import { MusicProvider } from './context/MusicContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import CursorGlow from './components/CursorGlow'
@@ -56,26 +57,28 @@ export default function App() {
   return (
     <HelmetProvider>
       <ThemeProvider>
-        <div className="grain" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-          <CursorGlow />
-          <Navbar />
-          <ScrollToTop />
-          <main style={{ flex: 1 }}>
-            <Suspense fallback={<PageLoader />}>
-              <AnimatePresence mode="wait">
-                <Routes location={location} key={location.pathname}>
-                  <Route path="/"            element={<PageWrapper><Home /></PageWrapper>} />
-                  <Route path="/projects"    element={<PageWrapper><ProjectsPage /></PageWrapper>} />
-                  <Route path="/posts"       element={<PageWrapper><PostsPage /></PageWrapper>} />
-                  <Route path="/posts/:slug" element={<PageWrapper><PostPage /></PageWrapper>} />
-                  <Route path="/contact"     element={<PageWrapper><ContactPage /></PageWrapper>} />
-                  <Route path="*"            element={<PageWrapper><NotFound /></PageWrapper>} />
-                </Routes>
-              </AnimatePresence>
-            </Suspense>
-          </main>
-          <Footer />
-        </div>
+        <MusicProvider>
+          <div className="grain" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+            <CursorGlow />
+            <Navbar />
+            <ScrollToTop />
+            <main style={{ flex: 1 }}>
+              <Suspense fallback={<PageLoader />}>
+                <AnimatePresence mode="wait">
+                  <Routes location={location} key={location.pathname}>
+                    <Route path="/"            element={<PageWrapper><Home /></PageWrapper>} />
+                    <Route path="/projects"    element={<PageWrapper><ProjectsPage /></PageWrapper>} />
+                    <Route path="/posts"       element={<PageWrapper><PostsPage /></PageWrapper>} />
+                    <Route path="/posts/:slug" element={<PageWrapper><PostPage /></PageWrapper>} />
+                    <Route path="/contact"     element={<PageWrapper><ContactPage /></PageWrapper>} />
+                    <Route path="*"            element={<PageWrapper><NotFound /></PageWrapper>} />
+                  </Routes>
+                </AnimatePresence>
+              </Suspense>
+            </main>
+            <Footer />
+          </div>
+        </MusicProvider>
       </ThemeProvider>
     </HelmetProvider>
   )
