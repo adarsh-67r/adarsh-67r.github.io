@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Palette, CaretDown, Check, List, X } from '@phosphor-icons/react'
+import MusicPlayer from './MusicPlayer'
 
 const NAV_LINKS = [
   { label: 'home',     to: '/' },
@@ -121,8 +122,9 @@ export default function Navbar() {
           height: scrolled ? '50px' : '56px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           transition: 'height 0.3s ease',
+          gap: '12px',
         }}>
-          <a href="/" onClick={handleNameClick} style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.35rem', fontWeight: 400, color: 'var(--accent)', textDecoration: 'none', lineHeight: 1 }}>Adarsh</a>
+          <a href="/" onClick={handleNameClick} style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.35rem', fontWeight: 400, color: 'var(--accent)', textDecoration: 'none', lineHeight: 1, flexShrink: 0 }}>Adarsh</a>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
             {NAV_LINKS.map(({ label, to }) => (
@@ -148,7 +150,12 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* ── Music Player ── */}
+          <div className="music-player-wrap" style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+            <MusicPlayer />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => { setThemeOpen(prev => !prev); setMobileOpen(false); setSearch('') }}
@@ -212,6 +219,7 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* mobile menu */}
         <div style={{ maxHeight: mobileOpen ? '400px' : '0', overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)', borderTop: mobileOpen ? '1px solid color-mix(in srgb, var(--accent) 15%, var(--border))' : '1px solid transparent' }}>
           <div style={{ padding: '12px max(24px, calc((100vw - 900px) / 2)) 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {NAV_LINKS.map(({ label, to }) => (
@@ -225,12 +233,17 @@ export default function Navbar() {
 
       <style>{`
         @media (max-width: 640px) {
-          .desktop-nav { display: none !important; }
-          .hamburger   { display: flex !important; }
+          .desktop-nav        { display: none !important; }
+          .hamburger          { display: flex !important; }
+          .music-player-wrap  { display: none !important; }
         }
         @keyframes dropdownIn {
           from { opacity: 0; transform: translateY(-6px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0)   scale(1); }
+        }
+        @keyframes musicBounce {
+          from { transform: translateY(0);   opacity: 0.7; }
+          to   { transform: translateY(-2px); opacity: 1;   }
         }
       `}</style>
     </>
