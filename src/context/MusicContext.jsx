@@ -2,9 +2,9 @@ import { createContext, useContext, useRef, useState, useEffect, useCallback } f
 
 // ─── Edit your playlist here ────────────────────────────────────────────────
 export const PLAYLIST = [
-  { title: 'Fire Flower',  src: '/music/Fire Flower (Inst.).mp3' },
+  { title: 'Fire Flower',  src: '/music/Fire Flower (Inst).mp3' },
   { title: 'Full Bloom',   src: '/music/Full Bloom (Inst.).mp3' },
-  { title: 'Never Losing', src: '/music/Never Losing.mp3' },
+  { title: 'Never Losing', src: '/music/Never Losing - Inst..mp3' },
 ]
 // ────────────────────────────────────────────────────────────────────────────
 
