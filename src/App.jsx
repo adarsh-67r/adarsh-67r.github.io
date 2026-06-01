@@ -7,7 +7,6 @@ import { MusicProvider } from './context/MusicContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import CursorGlow from './components/CursorGlow'
-import FloatingPlayer from './components/FloatingPlayer'
 import Home from './pages/Home'
 import './index.css'
 
@@ -62,7 +61,6 @@ export default function App() {
           <div className="grain" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
             <CursorGlow />
             <Navbar />
-            <FloatingPlayer />
             <ScrollToTop />
             <main style={{ flex: 1 }}>
               <Suspense fallback={<PageLoader />}>
