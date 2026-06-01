@@ -2,8 +2,9 @@ import { createContext, useContext, useRef, useState, useEffect, useCallback } f
 
 // ─── Edit your playlist here ────────────────────────────────────────────────
 export const PLAYLIST = [
-  { title: 'add your track',   src: '/music/track1.mp3' },
-  { title: 'add your track 2', src: '/music/track2.mp3' },
+  { title: 'Fire Flower',  src: '/music/Fire Flower (Inst.).mp3' },
+  { title: 'Full Bloom',   src: '/music/Full Bloom (Inst.).mp3' },
+  { title: 'Never Losing', src: '/music/Never Losing.mp3' },
 ]
 // ────────────────────────────────────────────────────────────────────────────
 
