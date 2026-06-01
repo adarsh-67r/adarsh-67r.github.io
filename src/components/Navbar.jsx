@@ -126,6 +126,7 @@ export default function Navbar() {
         }}>
           <a href="/" onClick={handleNameClick} style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.35rem', fontWeight: 400, color: 'var(--accent)', textDecoration: 'none', lineHeight: 1, flexShrink: 0 }}>Adarsh</a>
 
+          {/* desktop nav links */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
             {NAV_LINKS.map(({ label, to }) => (
               <Link key={to} to={to} style={{
@@ -150,7 +151,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* ── Music Player ── */}
+          {/* desktop music player */}
           <div className="music-player-wrap" style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
             <MusicPlayer />
           </div>
@@ -219,14 +220,26 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* mobile menu */}
-        <div style={{ maxHeight: mobileOpen ? '400px' : '0', overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)', borderTop: mobileOpen ? '1px solid color-mix(in srgb, var(--accent) 15%, var(--border))' : '1px solid transparent' }}>
+        {/* mobile dropdown menu */}
+        <div style={{ maxHeight: mobileOpen ? '520px' : '0', overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)', borderTop: mobileOpen ? '1px solid color-mix(in srgb, var(--accent) 15%, var(--border))' : '1px solid transparent' }}>
           <div style={{ padding: '12px max(24px, calc((100vw - 900px) / 2)) 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {NAV_LINKS.map(({ label, to }) => (
               <Link key={to} to={to}
                 style={{ padding: '10px 14px', borderRadius: '8px', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: isActive(to) ? 'var(--accent)' : 'var(--text)', background: isActive(to) ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: isActive(to) ? '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' : '1px solid transparent', transition: 'all 0.15s', display: 'block' }}
               >{isActive(to) ? '> ' : '  '}{label}</Link>
             ))}
+
+            {/* music player inside mobile menu */}
+            <div style={{
+              marginTop: '8px',
+              paddingTop: '12px',
+              borderTop: '1px solid color-mix(in srgb, var(--border) 60%, transparent)',
+            }}>
+              <div style={{ fontSize: '0.62rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '2px' }}>
+                now playing
+              </div>
+              <MusicPlayer mobile />
+            </div>
           </div>
         </div>
       </nav>
