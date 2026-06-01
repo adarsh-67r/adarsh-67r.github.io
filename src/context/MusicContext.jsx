@@ -2,19 +2,19 @@ import { createContext, useContext, useRef, useState, useEffect, useCallback } f
 
 // ─── Edit your playlist here ────────────────────────────────────────────────
 export const PLAYLIST = [
-  { title: 'Full Bloom',   src: '/music/Full Bloom (Inst.).mp3' },
-  { title: 'Never Losing', src: encodeURI('/music/Never Losing - Inst..mp3') },
+  { title: 'Full Bloom', src: '/music/Full Bloom (Inst.).mp3' },
+  { title: 'Never Losing', src: encodeURI('/music/Never Losing - (Inst.).mp3') },
 ]
 // ────────────────────────────────────────────────────────────────────────────
 
 const MusicCtx = createContext(null)
 
 export function MusicProvider({ children }) {
-  const audioRef               = useRef(null)
-  const [index, setIndex]      = useState(0)
-  const [playing, setPlaying]  = useState(false)
-  const [progress, setProgress]= useState(0)   // 0-100
-  const [duration, setDuration]= useState(0)
+  const audioRef = useRef(null)
+  const [index, setIndex] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)   // 0-100
+  const [duration, setDuration] = useState(0)
 
   // Mount audio element once
   useEffect(() => {
@@ -25,8 +25,8 @@ export function MusicProvider({ children }) {
     const onTimeUpdate = () => {
       if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100)
     }
-    const onLoaded   = () => setDuration(audio.duration)
-    const onEnded    = () => next()
+    const onLoaded = () => setDuration(audio.duration)
+    const onEnded = () => next()
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoaded)
@@ -38,7 +38,7 @@ export function MusicProvider({ children }) {
       audio.removeEventListener('loadedmetadata', onLoaded)
       audio.removeEventListener('ended', onEnded)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Load track whenever index changes
@@ -51,7 +51,7 @@ export function MusicProvider({ children }) {
     audio.load()
     setProgress(0)
     if (wasPlaying) audio.play().catch(() => setPlaying(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index])
 
   const togglePlay = useCallback(() => {
