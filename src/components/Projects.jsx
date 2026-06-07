@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowSquareOut, Star, GitFork, CircleNotch, Sparkle, Code, GithubLogo } from '@phosphor-icons/react'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
@@ -10,7 +10,7 @@ export default function Projects() {
   const [repos, setRepos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [activity, setActivity] = useState([])
+  const [activity, setActivity] = useState({})
   const [activityLoading, setActivityLoading] = useState(false)
 
   useEffect(() => {
@@ -26,35 +26,31 @@ export default function Projects() {
           })
           .catch(() => { setError('Failed to load repos'); setLoading(false) })
       }
-      if (activity.length === 0) {
+      if (Object.keys(activity).length === 0) {
         setActivityLoading(true)
-        fetch(`https://api.github.com/users/${GITHUB_USERNAME}/events/public?per_page=100`)
-          .then(r => r.json())
-          .then(data => {
-            if (!Array.isArray(data)) { setActivityLoading(false); return }
-            const counts = {}
-            const now = new Date()
-            for (let i = 29; i >= 0; i--) {
-              const d = new Date(now)
-              d.setDate(now.getDate() - i)
-              counts[d.toISOString().slice(0, 10)] = 0
+        // Fetch up to 3 pages (300 events) to get ~1 year of data
+        const pages = [1, 2, 3]
+        Promise.all(
+          pages.map(p =>
+            fetch(`https://api.github.com/users/${GITHUB_USERNAME}/events/public?per_page=100&page=${p}`)
+              .then(r => r.ok ? r.json() : [])
+              .catch(() => [])
+          )
+        ).then(results => {
+          const counts = {}
+          results.flat().forEach(e => {
+            if (e.type === 'PushEvent' && e.created_at) {
+              const day = e.created_at.slice(0, 10)
+              counts[day] = (counts[day] || 0) + (e.payload?.commits?.length || 1)
             }
-            data.forEach(e => {
-              if (e.type === 'PushEvent') {
-                const day = e.created_at?.slice(0, 10)
-                if (day && counts[day] !== undefined) {
-                  counts[day] += e.payload?.commits?.length || 1
-                }
-              }
-            })
-            setActivity(Object.entries(counts).map(([date, count]) => ({ date, count })))
-            setActivityLoading(false)
           })
-          .catch(() => setActivityLoading(false))
+          setActivity(counts)
+          setActivityLoading(false)
+        })
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, repos.length, activity.length])
+  }, [tab, repos.length])
 
   return (
     <section id="projects" style={{ padding: '100px max(24px, calc((100vw - 900px) / 2))', borderTop: '1px solid var(--border)' }}>
@@ -82,7 +78,7 @@ export default function Projects() {
 
         {tab === 'opensource' && (
           <div>
-            <ActivityGraph data={activity} loading={activityLoading} />
+            <ContributionGraph data={activity} loading={activityLoading} />
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted)', padding: '48px 0' }}>
                 <CircleNotch size={16} className="spin" />
@@ -107,77 +103,202 @@ export default function Projects() {
   )
 }
 
-function ActivityGraph({ data, loading }) {
-  const BAR_W = 10
-  const BAR_GAP = 4
-  const H = 48
-  const LABEL_H = 20
-  const max = Math.max(...data.map(d => d.count), 1)
-  const totalW = data.length > 0 ? data.length * (BAR_W + BAR_GAP) - BAR_GAP : 0
+// ─── Contribution Heatmap ─────────────────────────────────────────────────────
+const DAYS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-  const formatDate = (iso) => {
-    const d = new Date(iso)
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function buildGrid() {
+  // Build 53 weeks × 7 days ending today
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  // Go back to the Sunday 52 weeks ago
+  const start = new Date(today)
+  start.setDate(start.getDate() - 364 - start.getDay())
+
+  const weeks = []
+  const cur = new Date(start)
+  while (cur <= today) {
+    const week = []
+    for (let d = 0; d < 7; d++) {
+      const iso = cur.toISOString().slice(0, 10)
+      week.push({ iso, future: cur > today })
+      cur.setDate(cur.getDate() + 1)
+    }
+    weeks.push(week)
   }
+  return weeks
+}
+
+function getLevel(count) {
+  if (!count || count === 0) return 0
+  if (count <= 1) return 1
+  if (count <= 3) return 2
+  if (count <= 6) return 3
+  return 4
+}
+
+function ContributionGraph({ data, loading }) {
+  const weeks = buildGrid()
+  const totalCommits = Object.values(data).reduce((s, v) => s + v, 0)
+  const [tooltip, setTooltip] = useState(null)
+  const containerRef = useRef(null)
+
+  // Month labels: find first week of each month
+  const monthLabels = []
+  weeks.forEach((week, wi) => {
+    const firstDay = week.find(d => !d.future)
+    if (!firstDay) return
+    const month = new Date(firstDay.iso).getMonth()
+    if (wi === 0 || month !== new Date(weeks[wi - 1][0].iso).getMonth()) {
+      monthLabels.push({ wi, label: MONTHS[month] })
+    }
+  })
+
+  const CELL = 11   // cell size px
+  const GAP  = 3    // gap px
+  const STEP = CELL + GAP
 
   return (
-    <div style={{ marginBottom: '28px', padding: '16px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.05em' }}>commit activity · last 30 days</span>
-        {!loading && data.length > 0 && (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--accent)' }}>
-            {data.reduce((s, d) => s + d.count, 0)} commits
-          </span>
+    <div style={{ marginBottom: '28px', padding: '18px 20px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', overflowX: 'auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.05em' }}>commit activity · last year</span>
+        {!loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--accent)' }}>
+              {totalCommits} commits
+            </span>
+            {/* Legend */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)' }}>less</span>
+              {[0,1,2,3,4].map(l => (
+                <div key={l} style={{
+                  width: CELL, height: CELL, borderRadius: '2px', flexShrink: 0,
+                  background: levelColor(l),
+                  border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+                }} />
+              ))}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)' }}>more</span>
+            </div>
+          </div>
         )}
       </div>
+
       {loading && (
-        <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
+        <div style={{ height: '90px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
           <CircleNotch size={13} className="spin" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>loading activity...</span>
         </div>
       )}
-      {!loading && data.length === 0 && (
-        <div style={{ height: `${H}px`, display: 'flex', alignItems: 'center', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>no activity data</div>
-      )}
-      {!loading && data.length > 0 && (
-        <svg
-          viewBox={`0 0 ${totalW} ${H + LABEL_H}`}
-          width="100%"
-          style={{ display: 'block' }}
-          role="img"
-          aria-label="Commit activity over last 30 days"
-        >
-          {data.map((d, i) => {
-            const barH = d.count === 0 ? 2 : Math.max(4, Math.round((d.count / max) * H))
-            const x = i * (BAR_W + BAR_GAP)
-            const y = H - barH
-            const isFirst = i === 0
-            const isLast = i === data.length - 1
-            const isMid = i === Math.floor(data.length / 2)
-            const showLabel = isFirst || isLast || isMid
-            return (
-              <g key={d.date}>
-                <title>{`${formatDate(d.date)}: ${d.count} commit${d.count !== 1 ? 's' : ''}`}</title>
-                <rect x={x} y={y} width={BAR_W} height={barH} rx={3}
-                  fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
-                  opacity={d.count === 0 ? 0.5 : Math.max(0.35, d.count / max)}
-                />
-                {showLabel && (
-                  <text x={x + BAR_W / 2} y={H + 14}
-                    textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
-                    fontSize="9" fill="var(--muted)" fontFamily="var(--font-mono)"
-                  >
-                    {formatDate(d.date)}
-                  </text>
-                )}
-              </g>
-            )
-          })}
-        </svg>
+
+      {!loading && (
+        <div style={{ position: 'relative' }}>
+          {/* Tooltip */}
+          {tooltip && (
+            <div style={{
+              position: 'fixed',
+              left: tooltip.x,
+              top: tooltip.y - 36,
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.7rem',
+              color: 'var(--text)',
+              pointerEvents: 'none',
+              zIndex: 999,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            }}>
+              {tooltip.text}
+            </div>
+          )}
+
+          <svg
+            width={weeks.length * STEP}
+            height={7 * STEP + 18}
+            role="img"
+            aria-label="GitHub-style contribution graph for the last year"
+            style={{ display: 'block', minWidth: weeks.length * STEP }}
+          >
+            {/* Month labels */}
+            {monthLabels.map(({ wi, label }) => (
+              <text
+                key={`m-${wi}`}
+                x={wi * STEP}
+                y={9}
+                fontSize={9}
+                fill="var(--muted)"
+                fontFamily="var(--font-mono)"
+              >{label}</text>
+            ))}
+
+            {/* Day labels */}
+            {DAYS.map((d, di) => d ? (
+              <text
+                key={`d-${di}`}
+                x={-22}
+                y={18 + di * STEP + CELL * 0.85}
+                fontSize={9}
+                fill="var(--muted)"
+                fontFamily="var(--font-mono)"
+              >{d}</text>
+            ) : null)}
+
+            {/* Cells */}
+            <g transform="translate(0, 14)">
+              {weeks.map((week, wi) =>
+                week.map((day, di) => {
+                  if (day.future) return null
+                  const count = data[day.iso] || 0
+                  const level = getLevel(count)
+                  return (
+                    <rect
+                      key={day.iso}
+                      x={wi * STEP}
+                      y={di * STEP}
+                      width={CELL}
+                      height={CELL}
+                      rx={2}
+                      fill={levelColor(level)}
+                      style={{ cursor: 'pointer', transition: 'opacity 0.1s' }}
+                      onMouseEnter={e => {
+                        const rect = e.target.getBoundingClientRect()
+                        const formatted = new Date(day.iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        setTooltip({
+                          x: rect.left + rect.width / 2,
+                          y: rect.top,
+                          text: count === 0 ? `No commits on ${formatted}` : `${count} commit${count !== 1 ? 's' : ''} on ${formatted}`,
+                        })
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                    >
+                      <title>{`${day.iso}: ${count} commit${count !== 1 ? 's' : ''}`}</title>
+                    </rect>
+                  )
+                })
+              )}
+            </g>
+          </svg>
+        </div>
       )}
     </div>
   )
 }
+
+function levelColor(level) {
+  // Uses CSS variables — accent color for filled cells, border for empty
+  switch (level) {
+    case 0: return 'color-mix(in srgb, var(--border) 80%, transparent)'
+    case 1: return 'color-mix(in srgb, var(--accent) 25%, var(--surface))'
+    case 2: return 'color-mix(in srgb, var(--accent) 45%, var(--surface))'
+    case 3: return 'color-mix(in srgb, var(--accent) 70%, var(--surface))'
+    case 4: return 'var(--accent)'
+    default: return 'color-mix(in srgb, var(--border) 80%, transparent)'
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function TabBtn({ active, onClick, icon, label }) {
   return (
