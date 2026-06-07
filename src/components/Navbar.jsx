@@ -53,19 +53,13 @@ export default function Navbar() {
     const onKey = (e) => {
       const tag = e.target.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable
-
       if ((e.key === 't' || e.key === 'T') && !typing) {
         e.preventDefault()
-        setThemeOpen(prev => {
-          if (!prev) setMobileOpen(false)
-          return !prev
-        })
+        setThemeOpen(prev => { if (!prev) setMobileOpen(false); return !prev })
         setSearch('')
       }
-
       if (e.key === 'Escape') {
-        setThemeOpen(false)
-        setSearch('')
+        setThemeOpen(false); setSearch('')
         if (searchRef.current) searchRef.current.blur()
       }
     }
@@ -99,22 +93,19 @@ export default function Navbar() {
 
   const handleNameClick = (e) => {
     e.preventDefault()
-    if (location.pathname === '/') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      navigate('/')
-    }
+    if (location.pathname === '/') window.scrollTo({ top: 0, behavior: 'smooth' })
+    else navigate('/')
   }
 
   return (
     <>
       <nav ref={navRef} style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: glassOn ? 'color-mix(in srgb, var(--surface) 55%, transparent)' : 'transparent',
-        backdropFilter:       glassOn ? 'blur(22px) saturate(180%)' : 'none',
-        WebkitBackdropFilter: glassOn ? 'blur(22px) saturate(180%)' : 'none',
-        borderBottom: glassOn ? '1px solid color-mix(in srgb, var(--accent) 18%, var(--border))' : '1px solid transparent',
-        boxShadow: glassOn ? '0 1px 0 color-mix(in srgb, var(--accent) 8%, transparent), 0 8px 32px color-mix(in srgb, var(--bg) 55%, transparent)' : 'none',
+        background:           glassOn ? 'var(--glass-bg)' : 'transparent',
+        backdropFilter:       glassOn ? 'var(--glass-blur)' : 'none',
+        WebkitBackdropFilter: glassOn ? 'var(--glass-blur)' : 'none',
+        borderBottom:         glassOn ? '1px solid var(--glass-border)' : '1px solid transparent',
+        boxShadow:            glassOn ? 'var(--glass-shadow)' : 'none',
         transition: 'background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
       }}>
         <div style={{
@@ -124,29 +115,19 @@ export default function Navbar() {
           transition: 'height 0.3s ease',
           gap: '12px',
         }}>
-          <a href="/" onClick={handleNameClick} style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.35rem', fontWeight: 400, color: 'var(--accent)', textDecoration: 'none', lineHeight: 1, flexShrink: 0 }}>Adarsh</a>
+          <a href="/" onClick={handleNameClick} style={{
+            fontFamily: 'var(--font-display)', fontStyle: 'italic',
+            fontSize: '1.35rem', fontWeight: 400,
+            color: 'var(--accent)', textDecoration: 'none',
+            lineHeight: 1, flexShrink: 0,
+          }}>Adarsh</a>
 
           {/* desktop nav links */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
             {NAV_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to} style={{
-                padding: '6px 14px', borderRadius: '7px', textDecoration: 'none',
-                fontFamily: 'var(--font-mono)', fontSize: '0.8rem',
-                color:      isActive(to) ? 'var(--accent)' : 'var(--muted)',
-                background: isActive(to) ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                border:     isActive(to) ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent',
-                transition: 'all 0.2s',
-              }}
-                onMouseEnter={e => { if (!isActive(to)) { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}}
-                onMouseLeave={e => {
-                  if (!isActive(to)) {
-                    e.currentTarget.style.color = 'var(--muted)'
-                    e.currentTarget.style.background = 'transparent'
-                  } else {
-                    e.currentTarget.style.color = 'var(--accent)'
-                    e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)'
-                  }
-                }}
+              <Link
+                key={to} to={to}
+                className={`nav-link${isActive(to) ? ' active' : ''}`}
               >{label}</Link>
             ))}
           </div>
@@ -157,14 +138,13 @@ export default function Navbar() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Theme picker */}
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
+                className="ctrl-btn"
                 onClick={() => { setThemeOpen(prev => !prev); setMobileOpen(false); setSearch('') }}
                 aria-label={`Theme: ${active?.name || 'select theme'}`}
                 title={`${active?.name || 'Theme'} — press T`}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', background: 'color-mix(in srgb, var(--surface) 60%, transparent)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
               >
                 <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: active?.accent || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
                 <Palette size={13} aria-hidden="true" />
@@ -172,7 +152,14 @@ export default function Navbar() {
               </button>
 
               {themeOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '220px', maxHeight: '380px', background: 'color-mix(in srgb, var(--surface) 75%, transparent)', backdropFilter: 'blur(28px) saturate(180%)', WebkitBackdropFilter: 'blur(28px) saturate(180%)', border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--border))', borderRadius: '12px', boxShadow: '0 20px 60px color-mix(in srgb, var(--bg) 75%, transparent)', overflow: 'hidden', display: 'flex', flexDirection: 'column', zIndex: 200, animation: 'dropdownIn 0.18s cubic-bezier(0.16,1,0.3,1)' }}>
+                <div className="glass-strong" style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                  width: '220px', maxHeight: '380px',
+                  borderRadius: '12px',
+                  overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                  zIndex: 200,
+                  animation: 'dropdownIn 0.18s cubic-bezier(0.16,1,0.3,1)',
+                }}>
                   <div style={{ padding: '10px', borderBottom: '1px solid var(--border)' }}>
                     <input
                       ref={searchRef}
@@ -181,14 +168,17 @@ export default function Navbar() {
                       onChange={e => setSearch(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Escape') {
-                          e.stopPropagation()
-                          setThemeOpen(false)
-                          setSearch('')
-                          e.currentTarget.blur()
+                          e.stopPropagation(); setThemeOpen(false); setSearch(''); e.currentTarget.blur()
                         }
                       }}
                       aria-label="Search themes"
-                      style={{ width: '100%', padding: '6px 10px', background: 'color-mix(in srgb, var(--bg) 70%, transparent)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }}
+                      style={{
+                        width: '100%', padding: '6px 10px',
+                        background: 'color-mix(in srgb, var(--bg) 70%, transparent)',
+                        border: '1px solid var(--border)', borderRadius: '6px',
+                        color: 'var(--text)', fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)', outline: 'none',
+                      }}
                     />
                   </div>
                   <div style={{ padding: '6px 12px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -204,40 +194,41 @@ export default function Navbar() {
                       <div style={{ padding: '6px 12px 2px', fontSize: '0.65rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>Light</div>
                       {lightThemes.map(t => <ThemeOption key={t.value} theme={t} current={currentTheme} onSelect={v => { setCurrentTheme(v); setThemeOpen(false); setSearch('') }} />)}
                     </>)}
-                    {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>no themes found</div>}
+                    {filtered.length === 0 && (
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>no themes found</div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            <button onClick={() => { setMobileOpen(!mobileOpen); setThemeOpen(false) }} className="hamburger" aria-label="Toggle menu"
-              style={{ display: 'none', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', background: 'color-mix(in srgb, var(--surface) 60%, transparent)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer', backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.color = 'var(--muted)' }}
+            <button
+              className="ctrl-btn hamburger"
+              onClick={() => { setMobileOpen(!mobileOpen); setThemeOpen(false) }}
+              aria-label="Toggle menu"
+              style={{ display: 'none', width: '36px', height: '36px', padding: 0, justifyContent: 'center' }}
             >
               {mobileOpen ? <X size={17} aria-hidden="true" /> : <List size={17} aria-hidden="true" />}
             </button>
           </div>
         </div>
 
-        {/* mobile dropdown menu */}
-        <div style={{ maxHeight: mobileOpen ? '520px' : '0', overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)', borderTop: mobileOpen ? '1px solid color-mix(in srgb, var(--accent) 15%, var(--border))' : '1px solid transparent' }}>
+        {/* mobile dropdown */}
+        <div style={{
+          maxHeight: mobileOpen ? '520px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)',
+          borderTop: mobileOpen ? '1px solid var(--glass-border)' : '1px solid transparent',
+        }}>
           <div style={{ padding: '12px max(24px, calc((100vw - 900px) / 2)) 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {NAV_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to}
-                style={{ padding: '10px 14px', borderRadius: '8px', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: isActive(to) ? 'var(--accent)' : 'var(--text)', background: isActive(to) ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: isActive(to) ? '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' : '1px solid transparent', transition: 'all 0.15s', display: 'block' }}
+              <Link
+                key={to} to={to}
+                className={`mobile-nav-link${isActive(to) ? ' active' : ''}`}
               >{isActive(to) ? '> ' : '  '}{label}</Link>
             ))}
-
-            {/* music player inside mobile menu */}
-            <div style={{
-              marginTop: '8px',
-              paddingTop: '12px',
-              borderTop: '1px solid color-mix(in srgb, var(--border) 60%, transparent)',
-            }}>
-              <div style={{ fontSize: '0.62rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '2px' }}>
-                now playing
-              </div>
+            <div style={{ marginTop: '8px', paddingTop: '12px', borderTop: '1px solid color-mix(in srgb, var(--border) 60%, transparent)' }}>
+              <div style={{ fontSize: '0.62rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '2px' }}>now playing</div>
               <MusicPlayer mobile />
             </div>
           </div>
@@ -254,10 +245,6 @@ export default function Navbar() {
           from { opacity: 0; transform: translateY(-6px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
-        @keyframes musicBounce {
-          from { transform: translateY(0);   opacity: 0.7; }
-          to   { transform: translateY(-2px); opacity: 1;   }
-        }
       `}</style>
     </>
   )
@@ -266,8 +253,18 @@ export default function Navbar() {
 function ThemeOption({ theme, current, onSelect }) {
   const isActive = theme.value === current
   return (
-    <button onClick={() => onSelect(theme.value)}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 12px', background: isActive ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: 'none', color: isActive ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'left', transition: 'background 0.15s' }}
+    <button
+      onClick={() => onSelect(theme.value)}
+      className={isActive ? 'theme-opt theme-opt--active' : 'theme-opt'}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '7px 12px', border: 'none',
+        background: isActive ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+        color: isActive ? 'var(--accent)' : 'var(--text)',
+        cursor: 'pointer', fontSize: '0.78rem',
+        fontFamily: 'var(--font-mono)', textAlign: 'left',
+        transition: 'background 0.15s !important',
+      }}
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
     >
