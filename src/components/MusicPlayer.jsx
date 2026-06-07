@@ -1,38 +1,28 @@
-import { useState } from 'react'
+import { useRef } from 'react'
 import { SkipBack, SkipForward, Play, Pause, MusicNote } from '@phosphor-icons/react'
 import { useMusic, PLAYLIST } from '../context/MusicContext'
 
 export default function MusicPlayer() {
   const { index, playing, progress, togglePlay, next, prev, seek } = useMusic()
-  const [hovered, setHovered] = useState(false)
-  const [seekHover, setSeekHover] = useState(false)
   const track = PLAYLIST[index]
 
+  function handleSeek(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    seek(((e.clientX - rect.left) / rect.width) * 100)
+  }
+
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '5px 10px',
-        background: hovered
-          ? 'color-mix(in srgb, var(--accent) 10%, var(--surface))'
-          : 'color-mix(in srgb, var(--surface) 60%, transparent)',
-        border: `1px solid ${ hovered
-          ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
-          : 'var(--border)'}`,
-        borderRadius: '999px',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        transition: 'all 0.2s',
-        minWidth: 0,
-        maxWidth: '220px',
-      }}
-      title={track.title}
-    >
-      {/* music note icon — pulses when playing */}
+    <div className="music-pill" title={track.title}>
+      {/* screen-reader live region announces track changes */}
+      <span
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
+      >
+        {playing ? `Now playing: ${track.title}` : `Paused: ${track.title}`}
+      </span>
+
       <MusicNote
         size={12}
         aria-hidden="true"
@@ -43,89 +33,38 @@ export default function MusicPlayer() {
         }}
       />
 
-      {/* track name */}
-      <span style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.7rem',
-        color: playing ? 'var(--text)' : 'var(--muted)',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        maxWidth: '80px',
-        flexShrink: 1,
-        transition: 'color 0.2s',
-      }}>
+      <span className={`music-track${playing ? ' music-track--playing' : ''}`}>
         {track.title}
       </span>
 
-      {/* progress bar — click to seek */}
       <div
-        onClick={e => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          seek(((e.clientX - rect.left) / rect.width) * 100)
-        }}
-        onMouseEnter={() => setSeekHover(true)}
-        onMouseLeave={() => setSeekHover(false)}
+        className="music-bar"
+        onClick={handleSeek}
         title="seek"
-        style={{
-          position: 'relative',
-          width: '40px',
-          height: seekHover ? '6px' : '3px',
-          background: 'color-mix(in srgb, var(--border) 80%, transparent)',
-          borderRadius: '999px',
-          cursor: 'pointer',
-          flexShrink: 0,
-          transition: 'height 0.15s',
-        }}
+        role="slider"
+        aria-label="Playback progress"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
       >
-        <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${progress}%`,
-          background: 'var(--accent)',
-          borderRadius: '999px',
-          transition: 'width 0.1s linear',
-        }} />
+        <div className="music-bar__fill" style={{ width: `${progress}%` }} />
       </div>
 
-      {/* prev */}
-      <button
-        onClick={prev}
-        aria-label="Previous track"
-        style={BTN_STYLE}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
-      >
+      <button className="music-btn" onClick={prev} aria-label="Previous track">
         <SkipBack size={12} weight="fill" />
       </button>
 
-      {/* play / pause */}
       <button
+        className={`music-btn${playing ? ' music-btn--play' : ''}`}
         onClick={togglePlay}
         aria-label={playing ? 'Pause' : 'Play'}
-        style={{ ...BTN_STYLE, color: playing ? 'var(--accent)' : 'var(--muted)' }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
-        onMouseLeave={e => e.currentTarget.style.color = playing ? 'var(--accent)' : 'var(--muted)'}
       >
         {playing ? <Pause size={12} weight="fill" /> : <Play size={12} weight="fill" />}
       </button>
 
-      {/* next */}
-      <button
-        onClick={next}
-        aria-label="Next track"
-        style={BTN_STYLE}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
-      >
+      <button className="music-btn" onClick={next} aria-label="Next track">
         <SkipForward size={12} weight="fill" />
       </button>
     </div>
   )
-}
-
-const BTN_STYLE = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: 'none', border: 'none', padding: '2px',
-  color: 'var(--muted)', cursor: 'pointer',
-  transition: 'color 0.15s', flexShrink: 0,
 }
