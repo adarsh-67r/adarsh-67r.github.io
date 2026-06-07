@@ -26,7 +26,8 @@ export function MusicProvider({ children }) {
       if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100)
     }
     const onLoaded = () => setDuration(audio.duration)
-    const onEnded = () => next()
+    // Use setIndex directly to avoid stale closure on `next`
+    const onEnded = () => setIndex(i => (i + 1) % PLAYLIST.length)
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoaded)
@@ -38,7 +39,6 @@ export function MusicProvider({ children }) {
       audio.removeEventListener('loadedmetadata', onLoaded)
       audio.removeEventListener('ended', onEnded)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Load track whenever index changes
