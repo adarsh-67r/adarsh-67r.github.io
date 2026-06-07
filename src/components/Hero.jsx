@@ -8,7 +8,7 @@ import { useTyping } from '../hooks/useTyping'
 const ROLES = ['student. linux enthusiast.', 'open source.', 'developer.']
 
 export default function Hero() {
-  const { displayed } = useTyping(ROLES[0], {
+  const { displayed } = useTyping(ROLES, {
     loop: true,
     speed: 60,
     eraseSpeed: 30,
