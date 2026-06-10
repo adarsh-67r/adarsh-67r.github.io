@@ -43,3 +43,6 @@ Thumbs.db
 
 # Testing
 coverage/
+
+#AI agents
+.agent

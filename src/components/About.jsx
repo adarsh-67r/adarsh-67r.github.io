@@ -219,7 +219,7 @@ function FastFetchTerminal() {
 
         <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
           <div style={{ opacity: showFetchOutput && visibleRows > 0 ? 1 : 0, transition: "opacity 0.2s" }}>
-            <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace" }}>
+            <div style={{ color: "var(--accent)", whiteSpace: "pre", fontSize: "0.58rem", lineHeight: 1.35, opacity: 0.9, marginBottom: "10px", fontFamily: "'Fira Code','Cascadia Code','JetBrains Mono','Courier New',monospace", overflowX: "auto" }}>
               {ASCII_LOGO}
             </div>
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: "8px", display: "flex", flexDirection: "column" }}>
@@ -283,7 +283,7 @@ export default function About() {
 
         <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
           <Avatar size={120} />
-          <div style={{ flex: 1, minWidth: "260px" }}>
+          <div style={{ flex: 1, minWidth: 'min(260px, 100%)' }}>
             <p style={{ color: "var(--text)", fontSize: "0.95rem", fontFamily: "var(--font-body)", lineHeight: 1.8, marginBottom: "24px" }}>
               I&apos;m Adarsh, an undergraduate student at NIT Rourkela.
               I&apos;m into programming, math, and problem-solving. This site is

@@ -5,11 +5,11 @@ export default function Avatar({ size = 72 }) {
       alt="Adarsh"
       width={size}
       height={size}
+      loading="lazy"
+      className="avatar-ring"
       style={{
         width: size,
         height: size,
-        borderRadius: '50%',
-        border: '2px solid var(--border)',
         objectFit: 'cover',
         flexShrink: 0,
         display: 'block',
