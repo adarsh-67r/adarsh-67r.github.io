@@ -64,28 +64,7 @@ export default function TechStack() {
               </p>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {items.map((item) => (
-                  <span
-                    key={item}
-                    style={{
-                      padding: "5px 14px",
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "6px",
-                      fontSize: "0.8rem",
-                      color: "var(--text)",
-                      fontFamily: "var(--font-mono)",
-                      transition: "all 0.18s",
-                      cursor: "default",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "var(--accent)";
-                      e.currentTarget.style.color = "var(--accent)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "var(--border)";
-                      e.currentTarget.style.color = "var(--text)";
-                    }}
-                  >
+                  <span key={item} className="stack-tag">
                     {item}
                   </span>
                 ))}

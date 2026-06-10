@@ -47,7 +47,7 @@ export default function Hero() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
       >
         <p
           style={{
@@ -137,7 +137,7 @@ export default function Hero() {
           transform: 'translateX(-50%)',
         }}
       >
-        <div className="bounce" style={{ color: 'var(--muted)' }}>
+        <div className="bounce" style={{ color: 'var(--muted)' }} aria-label="Scroll down">
           <ArrowDown size={15} aria-hidden="true" />
         </div>
       </motion.div>

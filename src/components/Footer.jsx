@@ -8,7 +8,7 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer style={{
+    <footer className="footer-glass" style={{
       padding: '36px max(24px, calc((100vw - 900px) / 2))',
       borderTop: '1px solid var(--border)',
       display: 'flex',
