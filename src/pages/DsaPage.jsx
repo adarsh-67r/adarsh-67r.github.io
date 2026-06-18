@@ -13,11 +13,12 @@ const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
 
-// Judge0 CE — free public instance, no auth required
-// language_id 54 = C++ (GCC 9.2.0)
-const JUDGE0_BASE       = 'https://judge0-ce.p.rapidapi.com'
-const JUDGE0_LANG_ID    = 54
-const JUDGE0_TIMEOUT_MS = 20000
+// Wandbox — free public API, no auth, no local hosting required
+// https://wandbox.org/  |  POST https://wandbox.org/api/compile.json
+const WANDBOX_BASE       = 'https://wandbox.org/api/compile.json'
+const WANDBOX_COMPILER   = 'gcc-head'          // latest GCC
+const WANDBOX_OPTIONS    = '-std=c++17 -O2'
+const WANDBOX_TIMEOUT_MS = 30000
 
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
@@ -381,52 +382,51 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
-// ── run code via Judge0 CE ────────────────────────────────────────────────────────────────────────
-// Uses the free public Judge0 CE instance (no API key needed for low traffic).
-// Flow: POST /submissions?wait=true  →  get result immediately (synchronous mode).
-function b64(str) {
-  try { return btoa(unescape(encodeURIComponent(str))) } catch { return btoa(str) }
-}
-function unb64(str) {
-  if (!str) return ''
-  try { return decodeURIComponent(escape(atob(str))) } catch { return atob(str) }
-}
-
+// ── run code via Wandbox ──────────────────────────────────────────────────────────────────────────
+// Wandbox: free, public, no auth — https://wandbox.org/
+// POST https://wandbox.org/api/compile.json
+// Response: { status, compiler_output, program_output, program_error, signal }
+//   status          → exit code (string), "0" = success
+//   compiler_output → compile errors / warnings
+//   program_output  → stdout
+//   program_error   → stderr
 async function runCode(src, stdin) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), JUDGE0_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), WANDBOX_TIMEOUT_MS)
 
   try {
-    const res = await fetch(
-      `${JUDGE0_BASE}/submissions?base64_encoded=true&wait=true&fields=stdout,stderr,compile_output,status,time`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language_id:       JUDGE0_LANG_ID,
-          source_code:       b64(src),
-          stdin:             b64(stdin || ''),
-          cpu_time_limit:    10,
-          memory_limit:      256000,
-        }),
-        signal: controller.signal,
-      }
-    )
+    const res = await fetch(WANDBOX_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler:        WANDBOX_COMPILER,
+        code:            src,
+        stdin:           stdin || '',
+        'compiler-option-raw': WANDBOX_OPTIONS,
+        save:            false,
+      }),
+      signal: controller.signal,
+    })
     clearTimeout(timer)
-    if (!res.ok) throw new Error(`judge0 status ${res.status}`)
+    if (!res.ok) throw new Error(`wandbox status ${res.status}`)
     const data = await res.json()
 
-    // status.id 6 = Compilation Error; 11+ = Runtime/TLE/MLE
-    const compileErr = data.status?.id === 6 ? unb64(data.compile_output) : ''
-    const runtimeErr = data.status?.id > 3 && data.status?.id !== 6
-      ? (unb64(data.stderr) || data.status?.description || '')
-      : unb64(data.stderr)
+    // compiler_output contains compile errors (non-empty = failed to compile)
+    // program_output  = stdout
+    // program_error   = stderr (runtime)
+    // status          = exit code string, "0" = clean
+    const compileErr = (data.status === undefined || data.program_output === undefined)
+      ? (data.compiler_output || '')   // compile failed — no program ran
+      : ''
+    // If there's compiler_output AND program_output exists, it's just a warning
+    const hasWarningsOnly = data.compiler_output && data.program_output !== undefined
+    const stderr = data.program_error || ''
 
     return {
-      stdout:         unb64(data.stdout),
-      stderr:         runtimeErr,
-      compile_output: compileErr,
-      time:           data.time,
+      stdout:         data.program_output || '',
+      stderr:         stderr,
+      compile_output: hasWarningsOnly ? '' : compileErr,
+      time:           null,
     }
   } catch (err) {
     clearTimeout(timer)
@@ -504,8 +504,8 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
       if (result.stderr || result.compile_output) setTermOpen(true)
     } catch (err) {
       const msg = err.message === 'timeout'
-        ? 'Request timed out after 20 s — Judge0 may be busy. Try again.'
-        : 'Network error — could not reach Judge0 CE. Check your connection.'
+        ? 'Request timed out after 30 s — Wandbox may be busy. Try again.'
+        : 'Network error — could not reach Wandbox. Check your connection.'
       setRunResult({ stdout: '', stderr: '', compile_output: msg })
       setTermOpen(true)
     } finally {
@@ -566,7 +566,7 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
                 <WarningCircle size={11} aria-hidden="true" /> errors
               </IconBtn>
             )}
-            <IconBtn onClick={handleRun} title="Run code (Judge0 CE)" active={running}
+            <IconBtn onClick={handleRun} title="Run code (Wandbox)" active={running}
               style={{ background: running ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'color-mix(in srgb, var(--accent) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', color: 'var(--accent)' }}>
               {running ? <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite' }} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />} run
             </IconBtn>
