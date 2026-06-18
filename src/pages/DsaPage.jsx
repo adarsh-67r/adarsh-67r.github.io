@@ -12,8 +12,12 @@ const REPO   = 'adarsh-67r/a2z-dsa'
 const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
-const PISTON = 'https://emkc.org/api/v2/piston/execute'
-const PISTON_TIMEOUT_MS = 12000
+
+// Judge0 CE — free public instance, no auth required
+// language_id 54 = C++ (GCC 9.2.0)
+const JUDGE0_BASE       = 'https://judge0-ce.p.rapidapi.com'
+const JUDGE0_LANG_ID    = 54
+const JUDGE0_TIMEOUT_MS = 20000
 
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
@@ -377,28 +381,53 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
-// ── run code via Piston ───────────────────────────────────────────────────────────────────────────
-async function runCode(src, stdin) {
-  const payload = {
-    language: 'cpp',
-    version: '*',
-    files: [{ name: 'main.cpp', content: src }],
-    stdin,
-  }
+// ── run code via Judge0 CE ────────────────────────────────────────────────────────────────────────
+// Uses the free public Judge0 CE instance (no API key needed for low traffic).
+// Flow: POST /submissions?wait=true  →  get result immediately (synchronous mode).
+function b64(str) {
+  try { return btoa(unescape(encodeURIComponent(str))) } catch { return btoa(str) }
+}
+function unb64(str) {
+  if (!str) return ''
+  try { return decodeURIComponent(escape(atob(str))) } catch { return atob(str) }
+}
 
+async function runCode(src, stdin) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), PISTON_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), JUDGE0_TIMEOUT_MS)
 
   try {
-    const res = await fetch(PISTON, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    })
+    const res = await fetch(
+      `${JUDGE0_BASE}/submissions?base64_encoded=true&wait=true&fields=stdout,stderr,compile_output,status,time`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language_id:       JUDGE0_LANG_ID,
+          source_code:       b64(src),
+          stdin:             b64(stdin || ''),
+          cpu_time_limit:    10,
+          memory_limit:      256000,
+        }),
+        signal: controller.signal,
+      }
+    )
     clearTimeout(timer)
-    if (!res.ok) throw new Error(`Piston status ${res.status}`)
-    return await res.json()
+    if (!res.ok) throw new Error(`judge0 status ${res.status}`)
+    const data = await res.json()
+
+    // status.id 6 = Compilation Error; 11+ = Runtime/TLE/MLE
+    const compileErr = data.status?.id === 6 ? unb64(data.compile_output) : ''
+    const runtimeErr = data.status?.id > 3 && data.status?.id !== 6
+      ? (unb64(data.stderr) || data.status?.description || '')
+      : unb64(data.stderr)
+
+    return {
+      stdout:         unb64(data.stdout),
+      stderr:         runtimeErr,
+      compile_output: compileErr,
+      time:           data.time,
+    }
   } catch (err) {
     clearTimeout(timer)
     const isTimeout = err.name === 'AbortError'
@@ -470,20 +499,13 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
     if (!src || running) return
     setRunning(true); setRunResult(null); setTermOpen(false)
     try {
-      const data = await runCode(src, stdin)
-      const run = data.run || {}
-      const result = {
-        stdout:         run.stdout  || '',
-        stderr:         run.stderr  || '',
-        compile_output: data.compile?.stderr || '',
-        time:           run.time,
-      }
+      const result = await runCode(src, stdin)
       setRunResult(result)
       if (result.stderr || result.compile_output) setTermOpen(true)
     } catch (err) {
       const msg = err.message === 'timeout'
-        ? 'Request timed out after 12 s — Piston API may be overloaded. Try again.'
-        : 'Network error — could not reach Piston API (emkc.org). Check your connection.'
+        ? 'Request timed out after 20 s — Judge0 may be busy. Try again.'
+        : 'Network error — could not reach Judge0 CE. Check your connection.'
       setRunResult({ stdout: '', stderr: '', compile_output: msg })
       setTermOpen(true)
     } finally {
@@ -544,7 +566,7 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
                 <WarningCircle size={11} aria-hidden="true" /> errors
               </IconBtn>
             )}
-            <IconBtn onClick={handleRun} title="Run code (Piston API)" active={running}
+            <IconBtn onClick={handleRun} title="Run code (Judge0 CE)" active={running}
               style={{ background: running ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'color-mix(in srgb, var(--accent) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', color: 'var(--accent)' }}>
               {running ? <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite' }} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />} run
             </IconBtn>
