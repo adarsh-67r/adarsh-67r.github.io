@@ -2,12 +2,14 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Copy, Check, Code } from '@phosphor-icons/react'
+import { useTheme } from '../context/ThemeContext'
 
 const SyntaxHighlighter = lazy(() =>
   import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
 )
 
-let cachedStyle = null
+let cachedDark  = null
+let cachedLight = null
 
 const REPO   = 'adarsh-67r/a2z-dsa'
 const BRANCH = 'main'
@@ -33,9 +35,11 @@ function ReadingProgress() {
 
 export default function DsaFilePage() {
   const { topic, file } = useParams()
-  const [code, setCode]       = useState(null)
-  const [hlStyle, setHlStyle] = useState(cachedStyle)
-  const [copied, setCopied]   = useState(false)
+  const { activeTheme } = useTheme()
+  const [code, setCode]         = useState(null)
+  const [darkStyle, setDarkStyle]   = useState(cachedDark)
+  const [lightStyle, setLightStyle] = useState(cachedLight)
+  const [copied, setCopied]     = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   // fetch raw code
@@ -53,15 +57,15 @@ export default function DsaFilePage() {
       .catch(() => setNotFound(true))
   }, [topic, file])
 
-  // lazy-load prism oneDark style once
+  // lazy-load both prism styles once each
   useEffect(() => {
-    if (!cachedStyle) {
-      import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
-        cachedStyle = m.oneDark
-        setHlStyle(m.oneDark)
-      })
-    }
+    import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
+      if (!cachedDark)  { cachedDark  = m.oneDark;  setDarkStyle(m.oneDark) }
+      if (!cachedLight) { cachedLight = m.oneLight; setLightStyle(m.oneLight) }
+    })
   }, [])
+
+  const hlStyle = activeTheme.dark ? darkStyle : lightStyle
 
   function handleCopy() {
     if (!code) return
