@@ -15,7 +15,6 @@ const PostsPage    = lazy(() => import('./pages/PostsPage'))
 const PostPage     = lazy(() => import('./pages/PostPage'))
 const ContactPage  = lazy(() => import('./pages/ContactPage'))
 const DsaPage      = lazy(() => import('./pages/DsaPage'))
-const DsaFilePage  = lazy(() => import('./pages/DsaFilePage'))
 const NotFound     = lazy(() => import('./pages/NotFound'))
 
 function ScrollToTop() {
@@ -42,12 +41,7 @@ const pageVariants = {
 
 function PageWrapper({ children }) {
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
       {children}
     </motion.div>
   )
@@ -68,19 +62,19 @@ export default function App() {
               <Suspense fallback={<PageLoader />}>
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
-                    <Route path="/"              element={<PageWrapper><Home /></PageWrapper>} />
-                    <Route path="/projects"      element={<PageWrapper><ProjectsPage /></PageWrapper>} />
-                    <Route path="/posts"         element={<PageWrapper><PostsPage /></PageWrapper>} />
-                    <Route path="/posts/:slug"   element={<PageWrapper><PostPage /></PageWrapper>} />
-                    <Route path="/dsa"           element={<PageWrapper><DsaPage /></PageWrapper>} />
-                    <Route path="/dsa/:topic/:file" element={<PageWrapper><DsaFilePage /></PageWrapper>} />
-                    <Route path="/contact"       element={<PageWrapper><ContactPage /></PageWrapper>} />
-                    <Route path="*"              element={<PageWrapper><NotFound /></PageWrapper>} />
+                    <Route path="/"            element={<PageWrapper><Home /></PageWrapper>} />
+                    <Route path="/projects"    element={<PageWrapper><ProjectsPage /></PageWrapper>} />
+                    <Route path="/posts"       element={<PageWrapper><PostsPage /></PageWrapper>} />
+                    <Route path="/posts/:slug" element={<PageWrapper><PostPage /></PageWrapper>} />
+                    <Route path="/dsa"         element={<DsaPage />} />
+                    <Route path="/contact"     element={<PageWrapper><ContactPage /></PageWrapper>} />
+                    <Route path="*"            element={<PageWrapper><NotFound /></PageWrapper>} />
                   </Routes>
                 </AnimatePresence>
               </Suspense>
             </main>
-            <Footer />
+            {/* Footer hidden on /dsa — it uses full-height layout */}
+            {location.pathname !== '/dsa' && <Footer />}
           </div>
         </MusicProvider>
       </ThemeProvider>
