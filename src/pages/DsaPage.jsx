@@ -239,7 +239,7 @@ function CpStatsPanel({ open, onClose }) {
           exit={{ opacity: 0, y: -6, scale: 0.97 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
           style={{
-            position: 'absolute', top: '44px', right: '12px', zIndex: 50,
+            position: 'absolute', top: '44px', right: '12px', zIndex: 200,
             width: '320px',
             background: 'color-mix(in srgb, var(--surface) 96%, transparent)',
             border: '1px solid var(--border)',
@@ -920,7 +920,7 @@ export default function DsaPage() {
   )
 
   const topBar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', position: 'relative', zIndex: 10 }}>
       <button onClick={() => setSidebarOpen(o => !o)} title={sidebarOpen ? 'hide sidebar' : 'show sidebar'} aria-label={sidebarOpen ? 'hide sidebar' : 'show sidebar'}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '6px', background: sidebarOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: sidebarOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: sidebarOpen ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.18s' }}>
         <TreeStructure size={12} aria-hidden="true" />
