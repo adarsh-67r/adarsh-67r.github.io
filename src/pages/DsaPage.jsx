@@ -51,10 +51,7 @@ function getHighlighter() {
 }
 
 // ── Build nested tree from flat Git Trees API response ──────────────────────
-// The trees API returns a flat array of { path, type, sha, url } objects.
-// We reconstruct the nested structure the sidebar expects.
 function buildTree(flatItems, topicPath) {
-  // Only items inside this topic's path
   const relevant = flatItems.filter(item =>
     item.path.startsWith(topicPath + '/') &&
     (item.type === 'tree' || item.path.endsWith('.cpp'))
@@ -295,7 +292,11 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
 
 // ── IO panel ───────────────────────────────────────────────────────────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
+  // ran successfully but produced no output
   const ranClean = runResult && !runResult.stdout && !runResult.stderr && !runResult.compile_output && !running
+  // ran with stdin provided but still no output — likely cin failed to read
+  const stdinIgnored = ranClean && stdin.trim().length > 0
+
   return (
     <div style={{
       width: '280px', flexShrink: 0,
@@ -323,7 +324,19 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
       {/* output */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', height: '30px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'color-mix(in srgb, var(--surface) 80%, transparent)' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: running ? 'var(--accent)' : runResult?.stdout ? '#a6e3a1' : ranClean ? '#a6e3a1' : 'var(--muted)', flexShrink: 0, transition: 'background 0.3s' }} aria-hidden="true" />
+          <span style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: running
+              ? 'var(--accent)'
+              : runResult?.stdout
+                ? '#a6e3a1'
+                : stdinIgnored
+                  ? '#fab387'
+                  : ranClean
+                    ? '#a6e3a1'
+                    : 'var(--muted)',
+            flexShrink: 0, transition: 'background 0.3s',
+          }} aria-hidden="true" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--muted)', flex: 1 }}>output</span>
           {running && <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />}
         </div>
@@ -339,7 +352,16 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
               {runResult.stdout}
             </pre>
           )}
-          {ranClean && (
+          {stdinIgnored && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#fab387' }}>⚠ ran · no output</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--muted)', opacity: 0.7, lineHeight: 1.5 }}>
+                stdin was provided but nothing printed.<br />
+                check that your input format matches what <code style={{ color: 'var(--text)' }}>cin</code> expects.
+              </span>
+            </div>
+          )}
+          {ranClean && !stdinIgnored && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#a6e3a1', opacity: 0.75 }}>✓ ran · no output</span>
           )}
         </div>
@@ -414,16 +436,22 @@ async function runCode(src, stdin) {
     if (!res.ok) throw new Error(`wandbox status ${res.status}`)
     const data = await res.json()
 
-    const compileErr = (data.status === undefined || data.program_output === undefined)
-      ? (data.compiler_output || '')
-      : ''
-    const hasWarningsOnly = data.compiler_output && data.program_output !== undefined
+    // Wandbox response fields:
+    //   status           — exit code string e.g. "0" (only present after successful compile+run)
+    //   compiler_output  — compile warnings/errors
+    //   program_output   — stdout from the program
+    //   program_error    — stderr from the program
+    //
+    // Compile failure: status is absent OR compiler_output contains errors AND program_output is absent
+    const compiled = data.status !== undefined
+    const compileErr = !compiled ? (data.compiler_output || 'Compilation failed') : ''
+    // compiler_output present alongside a successful run means warnings only — don't surface as errors
     const stderr = data.program_error || ''
 
     return {
-      stdout:         data.program_output || '',
-      stderr:         stderr,
-      compile_output: hasWarningsOnly ? '' : compileErr,
+      stdout:         compiled ? (data.program_output || '') : '',
+      stderr:         compiled ? stderr : '',
+      compile_output: compileErr,
       time:           null,
     }
   } catch (err) {
@@ -620,7 +648,6 @@ export default function DsaPage() {
     let cancelled = false
     async function loadAll() {
       try {
-        // Single request — gets the entire repo tree recursively
         const res = await fetch(GH_TREES_API, {
           headers: { Accept: 'application/vnd.github+json' },
         })
