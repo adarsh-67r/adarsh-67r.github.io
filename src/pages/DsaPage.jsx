@@ -10,13 +10,14 @@ import {
 
 const REPO   = 'adarsh-67r/a2z-dsa'
 const BRANCH = 'main'
-const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
+// Git Trees API — single request, recursive=1 fetches the entire repo tree
+// No auth needed; unauthenticated rate-limit is 60 req/hour on contents API
+// but the trees endpoint counts as 1 request total regardless of depth.
+const GH_TREES_API = `https://api.github.com/repos/${REPO}/git/trees/HEAD?recursive=1`
 
-// Wandbox — free public API, no auth, no local hosting required
-// https://wandbox.org/  |  POST https://wandbox.org/api/compile.json
 const WANDBOX_BASE       = 'https://wandbox.org/api/compile.json'
-const WANDBOX_COMPILER   = 'gcc-head'          // latest GCC
+const WANDBOX_COMPILER   = 'gcc-head'
 const WANDBOX_OPTIONS    = '-std=c++17 -O2'
 const WANDBOX_TIMEOUT_MS = 30000
 
@@ -32,7 +33,7 @@ const FONT_SIZES = [
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
 
-// ── Shiki highlighter singleton ─────────────────────────────────────────────────────────────────
+// ── Shiki highlighter singleton ─────────────────────────────────────────────
 let shikiHighlighterPromise = null
 function getHighlighter() {
   if (!shikiHighlighterPromise) {
@@ -49,27 +50,36 @@ function getHighlighter() {
   return shikiHighlighterPromise
 }
 
-async function ghFetch(path) {
-  const res = await fetch(`${GH_API}/${path}?ref=${BRANCH}`, {
-    headers: { Accept: 'application/vnd.github+json' },
-  })
-  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
-  return res.json()
-}
+// ── Build nested tree from flat Git Trees API response ──────────────────────
+// The trees API returns a flat array of { path, type, sha, url } objects.
+// We reconstruct the nested structure the sidebar expects.
+function buildTree(flatItems, topicPath) {
+  // Only items inside this topic's path
+  const relevant = flatItems.filter(item =>
+    item.path.startsWith(topicPath + '/') &&
+    (item.type === 'tree' || item.path.endsWith('.cpp'))
+  )
 
-async function fetchTopicTree(topicPath) {
-  const items = await ghFetch(topicPath)
-  items.sort((a, b) => {
-    if (a.type === b.type) return a.name.localeCompare(b.name)
-    return a.type === 'dir' ? -1 : 1
-  })
-  const filtered = items.filter(i => i.type === 'dir' || i.name.endsWith('.cpp'))
-  const withChildren = await Promise.all(filtered.map(async item => {
-    if (item.type !== 'dir') return { ...item, children: null }
-    const children = await fetchTopicTree(item.path)
-    return { ...item, children }
-  }))
-  return withChildren
+  function makeChildren(parentPath) {
+    const depth = parentPath.split('/').length
+    const direct = relevant.filter(item => {
+      const parts = item.path.split('/')
+      return parts.slice(0, depth).join('/') === parentPath &&
+             parts.length === depth + 1
+    })
+    direct.sort((a, b) => {
+      if (a.type === b.type) return a.path.localeCompare(b.path)
+      return a.type === 'tree' ? -1 : 1
+    })
+    return direct.map(item => ({
+      name: item.path.split('/').pop(),
+      path: item.path,
+      type: item.type === 'tree' ? 'dir' : 'file',
+      children: item.type === 'tree' ? makeChildren(item.path) : null,
+    }))
+  }
+
+  return makeChildren(topicPath)
 }
 
 function flattenFiles(nodes) {
@@ -90,7 +100,7 @@ function prettyName(raw) {
     .trim()
 }
 
-// ── icon button ──────────────────────────────────────────────────────────────────────────────────
+// ── icon button ───────────────────────────────────────────────────────────────
 function IconBtn({ onClick, title, active, children, style = {}, danger, success }) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
@@ -124,7 +134,7 @@ function IconBtn({ onClick, title, active, children, style = {}, danger, success
   )
 }
 
-// ── reading progress bar ─────────────────────────────────────────────────────────────────────────
+// ── reading progress bar ──────────────────────────────────────────────────────
 function ReadingProgress({ scrollRef }) {
   const [pct, setPct] = useState(0)
   useEffect(() => {
@@ -141,7 +151,7 @@ function ReadingProgress({ scrollRef }) {
   )
 }
 
-// ── search bar ────────────────────────────────────────────────────────────────────────────────────
+// ── search bar ────────────────────────────────────────────────────────────────
 function SearchBar({ query, onChange, onClose }) {
   const inputRef = useRef(null)
   useEffect(() => { inputRef.current?.focus() }, [])
@@ -157,7 +167,7 @@ function SearchBar({ query, onChange, onClose }) {
   )
 }
 
-// ── search results ───────────────────────────────────────────────────────────────────────────────
+// ── search results ────────────────────────────────────────────────────────────
 function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   const filtered = allFiles.filter(f =>
     prettyName(f.name).toLowerCase().includes(query.toLowerCase()) ||
@@ -190,7 +200,7 @@ function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   )
 }
 
-// ── tree node ──────────────────────────────────────────────────────────────────────────────────────
+// ── tree node ──────────────────────────────────────────────────────────────────
 function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   const [open, setOpen] = useState(false)
   const isDir    = node.type === 'dir'
@@ -245,7 +255,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
-// ── terminal drawer ──────────────────────────────────────────────────────────────────────────────
+// ── terminal drawer ────────────────────────────────────────────────────────────
 function TerminalDrawer({ open, onClose, runResult, running }) {
   const hasErrors = runResult?.compile_output || runResult?.stderr
   return (
@@ -283,7 +293,7 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
   )
 }
 
-// ── IO panel ───────────────────────────────────────────────────────────────────────────────────────
+// ── IO panel ───────────────────────────────────────────────────────────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
   const ranClean = runResult && !runResult.stdout && !runResult.stderr && !runResult.compile_output && !running
   return (
@@ -338,7 +348,7 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
   )
 }
 
-// ── shiki code view (v4 compatible) ────────────────────────────────────────────────────────────────
+// ── shiki code view ────────────────────────────────────────────────────────────
 function ShikiCode({ code, fontSize }) {
   const [html, setHtml] = useState('')
   const [failed, setFailed] = useState(false)
@@ -382,14 +392,7 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
-// ── run code via Wandbox ──────────────────────────────────────────────────────────────────────────
-// Wandbox: free, public, no auth — https://wandbox.org/
-// POST https://wandbox.org/api/compile.json
-// Response: { status, compiler_output, program_output, program_error, signal }
-//   status          → exit code (string), "0" = success
-//   compiler_output → compile errors / warnings
-//   program_output  → stdout
-//   program_error   → stderr
+// ── run code via Wandbox ───────────────────────────────────────────────────────
 async function runCode(src, stdin) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), WANDBOX_TIMEOUT_MS)
@@ -411,14 +414,9 @@ async function runCode(src, stdin) {
     if (!res.ok) throw new Error(`wandbox status ${res.status}`)
     const data = await res.json()
 
-    // compiler_output contains compile errors (non-empty = failed to compile)
-    // program_output  = stdout
-    // program_error   = stderr (runtime)
-    // status          = exit code string, "0" = clean
     const compileErr = (data.status === undefined || data.program_output === undefined)
-      ? (data.compiler_output || '')   // compile failed — no program ran
+      ? (data.compiler_output || '')
       : ''
-    // If there's compiler_output AND program_output exists, it's just a warning
     const hasWarningsOnly = data.compiler_output && data.program_output !== undefined
     const stderr = data.program_error || ''
 
@@ -435,7 +433,7 @@ async function runCode(src, stdin) {
   }
 }
 
-// ── code panel ────────────────────────────────────────────────────────────────────────────────────
+// ── code panel ─────────────────────────────────────────────────────────────────
 function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const [code, setCode]           = useState(null)
   const [origCode, setOrigCode]   = useState(null)
@@ -604,7 +602,7 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   )
 }
 
-// ── main page ───────────────────────────────────────────────────────────────────────────────────
+// ── main page ─────────────────────────────────────────────────────────────────
 export default function DsaPage() {
   const [activeFile, setActiveFile]   = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -613,29 +611,40 @@ export default function DsaPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [fontSize, setFontSize]       = useState('0.875rem')
 
-  const [trees, setTrees]       = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
-  const [allFiles, setAllFiles] = useState([])
+  const [trees, setTrees]           = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
+  const [allFiles, setAllFiles]     = useState([])
   const [treeLoading, setTreeLoading] = useState(true)
+  const [treeError, setTreeError]   = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function loadAll() {
-      const results = await Promise.allSettled(TOPICS.map(t => fetchTopicTree(t.name)))
-      if (cancelled) return
-      const newTrees = {}
-      const newFiles = []
-      results.forEach((r, i) => {
-        const name = TOPICS[i].name
-        if (r.status === 'fulfilled') {
-          newTrees[name] = r.value
-          newFiles.push(...flattenFiles(r.value))
-        } else {
-          newTrees[name] = []
-        }
-      })
-      setTrees(newTrees)
-      setAllFiles(newFiles)
-      setTreeLoading(false)
+      try {
+        // Single request — gets the entire repo tree recursively
+        const res = await fetch(GH_TREES_API, {
+          headers: { Accept: 'application/vnd.github+json' },
+        })
+        if (!res.ok) throw new Error(`GitHub API ${res.status}`)
+        const data = await res.json()
+        if (cancelled) return
+
+        const flatItems = data.tree || []
+        const newTrees = {}
+        const newFiles = []
+
+        TOPICS.forEach(topic => {
+          const children = buildTree(flatItems, topic.name)
+          newTrees[topic.name] = children
+          newFiles.push(...flattenFiles(children))
+        })
+
+        setTrees(newTrees)
+        setAllFiles(newFiles)
+      } catch (e) {
+        if (!cancelled) setTreeError(true)
+      } finally {
+        if (!cancelled) setTreeLoading(false)
+      }
     }
     loadAll()
     return () => { cancelled = true }
@@ -699,6 +708,11 @@ export default function DsaPage() {
         <SearchResults query={searchQuery} allFiles={allFiles} onFileClick={handleFileClick} activeFile={activeFile?.path} />
       ) : (
         <div style={{ paddingTop: '8px', paddingBottom: '24px' }}>
+          {treeError && (
+            <div style={{ padding: '16px 14px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#f38ba8', opacity: 0.85 }}>
+              ⚠ could not load tree
+            </div>
+          )}
           {treeLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
