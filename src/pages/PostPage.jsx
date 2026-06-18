@@ -10,14 +10,12 @@ const SyntaxHighlighter = lazy(() =>
   import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
 )
 
-// oneDark is loaded lazily inside CodeBlock — no module-level side-effect needed
-let oneDarkStyle = null
+let cachedTheme = null
 
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
 
 function ReadingProgress() {
   const [progress, setProgress] = useState(0)
-
   useEffect(() => {
     const update = () => {
       const scrollTop = window.scrollY
@@ -28,7 +26,6 @@ function ReadingProgress() {
     update()
     return () => window.removeEventListener('scroll', update)
   }, [])
-
   return (
     <div className="progress-bar-track">
       <div className="progress-bar" style={{ width: `${progress}%` }} />
@@ -36,16 +33,15 @@ function ReadingProgress() {
   )
 }
 
-// react-markdown v10: `inline` prop removed — detect by absence of newlines
 function CodeBlock({ className, children }) {
-  const [style, setStyle] = useState(oneDarkStyle)
+  const [style, setStyle] = useState(cachedTheme)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!oneDarkStyle) {
-      import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
-        oneDarkStyle = m.oneDark
-        setStyle(m.oneDark)
+    if (!cachedTheme) {
+      import('../styles/prism-catppuccin.js').then(m => {
+        cachedTheme = m.default
+        setStyle(m.default)
       })
     }
   }, [])
@@ -76,18 +72,31 @@ function CodeBlock({ className, children }) {
           <span>{copied ? 'copied' : 'copy'}</span>
         </button>
       </div>
-      <Suspense fallback={<pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{code}</code></pre>}>
+      <Suspense fallback={
+        <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto', margin: 0 }}>
+          <code style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{code}</code>
+        </pre>
+      }>
         {style ? (
           <SyntaxHighlighter
             language={lang || 'text'}
             style={style}
-            customStyle={{ margin: 0, borderRadius: 0, background: 'var(--surface)', fontSize: '0.875rem', lineHeight: 1.65 }}
+            customStyle={{
+              margin: 0,
+              borderRadius: 0,
+              background: 'var(--surface)',
+              fontSize: '0.875rem',
+              lineHeight: 1.75,
+              overflowX: 'auto',
+            }}
             PreTag="div"
           >
             {code}
           </SyntaxHighlighter>
         ) : (
-          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto' }}><code>{code}</code></pre>
+          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto', margin: 0 }}>
+            <code style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{code}</code>
+          </pre>
         )}
       </Suspense>
     </div>
@@ -165,11 +174,25 @@ export default function PostPage() {
     <>
       <ReadingProgress />
       <div style={{ minHeight: '100vh', padding: '90px max(24px, calc((100vw - 1100px) / 2)) 80px' }}>
-        <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: headings.length ? '1fr 220px' : '1fr', gap: '48px', alignItems: 'start', maxWidth: '1100px', margin: '0 auto' }}>
-
+        <div
+          className="post-layout"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: headings.length ? '1fr 220px' : '1fr',
+            gap: '48px',
+            alignItems: 'start',
+            maxWidth: '1100px',
+            margin: '0 auto',
+          }}
+        >
           {headings.length > 0 && (
-            <motion.aside className="post-toc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-              ref={tocRef} style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
+            <motion.aside
+              className="post-toc"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              ref={tocRef}
+              style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '4px' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>
                 <List size={12} aria-hidden="true" /> on this page
@@ -178,7 +201,12 @@ export default function PostPage() {
             </motion.aside>
           )}
 
-          <motion.article className="post-article" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <motion.article
+            className="post-article"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
             <Link to="/posts" className="post-back">
               <ArrowLeft size={14} aria-hidden="true" /> back to posts
             </Link>
@@ -224,10 +252,14 @@ export default function PostPage() {
 function TocItem({ h, active, onClick }) {
   const [hovered, setHovered] = useState(false)
   return (
-    <button onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-        cursor: 'pointer', fontSize: '0.78rem', fontFamily: 'var(--font-mono)',
+        display: 'block', width: '100%', textAlign: 'left',
+        background: 'none', border: 'none', cursor: 'pointer',
+        fontSize: '0.78rem', fontFamily: 'var(--font-mono)',
         color: active ? 'var(--accent)' : hovered ? 'var(--text)' : 'var(--muted)',
         borderLeft: `2px solid ${active ? 'var(--accent)' : h.level === 3 ? 'color-mix(in srgb, var(--border) 60%, transparent)' : 'var(--border)'}`,
         paddingLeft: h.level === 2 ? '10px' : '20px',
@@ -236,7 +268,9 @@ function TocItem({ h, active, onClick }) {
         lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         opacity: h.level === 3 ? 0.85 : 1,
       }}
-    >{h.text}</button>
+    >
+      {h.text}
+    </button>
   )
 }
 

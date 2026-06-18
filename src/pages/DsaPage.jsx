@@ -2,20 +2,19 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Folder, FolderOpen, FileCode, CaretRight,
-  Copy, Check, Code, TreeStructure,
+  Copy, Check, Code, TreeStructure, X,
 } from '@phosphor-icons/react'
 
 const SyntaxHighlighter = lazy(() =>
   import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
 )
-let cachedStyle = null
+let cachedTheme = null
 
 const REPO   = 'adarsh-67r/a2z-dsa'
 const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
 
-// Top-level topics — label is the display name
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
   { name: '02_SortingTechniques', label: 'Sorting Techniques' },
@@ -32,14 +31,14 @@ async function ghFetch(path) {
 
 function prettyName(raw) {
   return raw
-    .replace(/^\d+_/, '')          // strip leading number_
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase → words
-    .replace(/_/g, ' ')            // underscores → spaces
-    .replace(/\.cpp$/, '')         // strip extension
+    .replace(/^\d+_/, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\.cpp$/, '')
     .trim()
 }
 
-// ─── Reading progress bar ────────────────────────────────────────────────────
+// ── Reading progress ───────────────────────────────────────────────────────────
 function ReadingProgress({ scrollRef }) {
   const [pct, setPct] = useState(0)
   useEffect(() => {
@@ -55,19 +54,23 @@ function ReadingProgress({ scrollRef }) {
   }, [])
   return (
     <div style={{ height: '2px', background: 'var(--border)', flexShrink: 0 }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: 'width 0.1s linear' }} />
+      <div style={{
+        height: '100%', width: `${pct}%`,
+        background: 'var(--accent)',
+        transition: 'width 0.1s linear',
+      }} />
     </div>
   )
 }
 
-// ─── Sidebar tree node ───────────────────────────────────────────────────────
+// ── Tree node ──────────────────────────────────────────────────────────────────
 function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   const [open, setOpen]       = useState(false)
-  const [children, setChildren] = useState(null)   // null = not loaded
+  const [children, setChildren] = useState(null)
   const [loading, setLoading]   = useState(false)
 
-  const isDir  = node.type === 'dir'
-  const isFile = node.type === 'file'
+  const isDir    = node.type === 'dir'
+  const isFile   = node.type === 'file'
   const isActive = isFile && activeFile === node.path
 
   async function toggle() {
@@ -78,7 +81,6 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
       setLoading(true)
       try {
         const items = await ghFetch(node.path)
-        // sort: dirs first, then files
         items.sort((a, b) => {
           if (a.type === b.type) return a.name.localeCompare(b.name)
           return a.type === 'dir' ? -1 : 1
@@ -89,16 +91,16 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
     }
   }
 
-  const indent = depth * 16
+  const indent = depth * 14
 
   return (
     <div>
       <button
         onClick={toggle}
-        title={node.name}
+        title={prettyName(node.name)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center',
-          gap: '7px', padding: `6px 12px 6px ${12 + indent}px`,
+          gap: '6px', padding: `5px 10px 5px ${10 + indent}px`,
           background: isActive
             ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
             : 'transparent',
@@ -107,7 +109,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
           borderRadius: 0,
           color: isActive ? 'var(--accent)' : isFile ? 'var(--muted)' : 'var(--text)',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.78rem',
+          fontSize: '0.76rem',
           textAlign: 'left',
           cursor: 'pointer',
           lineHeight: 1.4,
@@ -118,7 +120,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
         }}
         onMouseEnter={e => {
           if (!isActive) {
-            e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 5%, transparent)'
+            e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)'
             e.currentTarget.style.color = 'var(--text)'
           }
         }}
@@ -130,7 +132,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
         }}
       >
         {isDir && (
-          <CaretRight size={10} aria-hidden="true" style={{
+          <CaretRight size={9} aria-hidden="true" style={{
             flexShrink: 0, color: 'var(--muted)',
             transform: open ? 'rotate(90deg)' : 'none',
             transition: 'transform 0.18s',
@@ -138,16 +140,19 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
         )}
         {isDir
           ? open
-            ? <FolderOpen size={13} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--accent)' }} />
-            : <Folder     size={13} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--muted)' }} />
-          : <FileCode size={13} aria-hidden="true" style={{ flexShrink: 0, color: isActive ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 55%, var(--muted))' }} />
+            ? <FolderOpen size={12} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--accent)' }} />
+            : <Folder     size={12} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--muted)' }} />
+          : <FileCode size={12} aria-hidden="true" style={{
+              flexShrink: 0,
+              color: isActive ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 50%, var(--muted))',
+            }} />
         }
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
           {prettyName(node.name)}
         </span>
         {loading && (
           <div style={{
-            width: '9px', height: '9px', flexShrink: 0,
+            width: '8px', height: '8px', flexShrink: 0,
             border: '1.5px solid var(--border)',
             borderTopColor: 'var(--accent)',
             borderRadius: '50%',
@@ -161,13 +166,14 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
             style={{ overflow: 'hidden' }}
           >
             {children.length === 0 && (
-              <div style={{ padding: `4px 12px 4px ${12 + indent + 28}px`, fontSize: '0.72rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-                empty
-              </div>
+              <div style={{
+                padding: `3px 10px 3px ${10 + indent + 24}px`,
+                fontSize: '0.7rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)',
+              }}>empty</div>
             )}
             {children.map(child => (
               <TreeNode
@@ -185,20 +191,20 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
-// ─── Code panel ──────────────────────────────────────────────────────────────
-function CodePanel({ file }) {
+// ── Code panel ────────────────────────────────────────────────────────────────
+function CodePanel({ file, onMobileClose }) {
   const [code, setCode]       = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(false)
   const [copied, setCopied]   = useState(false)
-  const [hlStyle, setHlStyle] = useState(cachedStyle)
+  const [hlStyle, setHlStyle] = useState(cachedTheme)
   const scrollRef = useRef(null)
 
   useEffect(() => {
-    if (!cachedStyle) {
-      import('react-syntax-highlighter/dist/esm/styles/prism').then(m => {
-        cachedStyle = m.oneDark
-        setHlStyle(m.oneDark)
+    if (!cachedTheme) {
+      import('../styles/prism-catppuccin.js').then(m => {
+        cachedTheme = m.default
+        setHlStyle(m.default)
       })
     }
   }, [])
@@ -221,57 +227,76 @@ function CodePanel({ file }) {
     })
   }
 
-  // ── empty state
+  // empty state
   if (!file) return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      gap: '12px', color: 'var(--muted)', minHeight: 0,
+      gap: '12px', color: 'var(--muted)',
     }}>
-      <FileCode size={36} style={{ opacity: 0.25 }} aria-hidden="true" />
-      <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', opacity: 0.6 }}>
-        select a file to view the code
+      <FileCode size={32} style={{ opacity: 0.2 }} aria-hidden="true" />
+      <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', opacity: 0.55 }}>
+        select a file to read the code
       </p>
     </div>
   )
 
   const lines = code ? code.split('\n').length : 0
-  const topicLabel = prettyName(file.path.split('/').slice(0, -1).join('/'))
+  const parts = file.path.split('/')
+  const topicLabel = parts.slice(0, -1).map(prettyName).join(' / ')
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0,
-    }}>
-      {/* reading progress */}
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
       <ReadingProgress scrollRef={scrollRef} />
 
       {/* file header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: '12px', padding: '12px 20px', flexShrink: 0,
+        gap: '10px', padding: '10px 16px', flexShrink: 0,
         borderBottom: '1px solid var(--border)',
         background: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur-sm)',
         WebkitBackdropFilter: 'var(--glass-blur-sm)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <FileCode size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          {/* mobile back button */}
+          {onMobileClose && (
+            <button
+              onClick={onMobileClose}
+              aria-label="Back to file list"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '28px', height: '28px', borderRadius: '6px',
+                background: 'transparent', border: '1px solid var(--border)',
+                color: 'var(--muted)', cursor: 'pointer', flexShrink: 0,
+                transition: 'color 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          )}
+          <FileCode size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
           <div style={{ minWidth: 0 }}>
             <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '0.88rem',
+              fontFamily: 'var(--font-mono)', fontSize: '0.85rem',
               fontWeight: 600, color: 'var(--text)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {file.name}
             </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginTop: '1px' }}>
+            <div style={{
+              fontSize: '0.67rem', color: 'var(--muted)',
+              fontFamily: 'var(--font-mono)', marginTop: '1px',
+            }}>
               {topicLabel}
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {lines > 0 && (
-            <span style={{ fontSize: '0.68rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: '0.67rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
               {lines} lines
             </span>
           )}
@@ -280,7 +305,7 @@ function CodePanel({ file }) {
             aria-label={copied ? 'Copied' : 'Copy code'}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
-              padding: '5px 12px', borderRadius: '7px',
+              padding: '4px 10px', borderRadius: '6px',
               background: copied
                 ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
                 : 'var(--glass-bg)',
@@ -291,23 +316,34 @@ function CodePanel({ file }) {
                 ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
                 : 'var(--border)',
               color: copied ? 'var(--accent)' : 'var(--muted)',
-              fontFamily: 'var(--font-mono)', fontSize: '0.73rem',
+              fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
               cursor: 'pointer', transition: 'all 0.18s',
             }}
           >
-            {copied
-              ? <Check size={12} aria-hidden="true" />
-              : <Copy  size={12} aria-hidden="true" />}
+            {copied ? <Check size={11} aria-hidden="true" /> : <Copy size={11} aria-hidden="true" />}
             {copied ? 'copied!' : 'copy'}
           </button>
         </div>
       </div>
 
       {/* code area */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'auto',  // horizontal scroll for long lines
+          minHeight: 0,
+        }}
+      >
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
-            <div style={{ width: '18px', height: '18px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%' }} className="spin" />
+            <div style={{
+              width: '16px', height: '16px',
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--accent)',
+              borderRadius: '50%',
+            }} className="spin" />
           </div>
         )}
         {error && (
@@ -317,7 +353,11 @@ function CodePanel({ file }) {
         )}
         {code && !loading && (
           <Suspense fallback={
-            <pre style={{ background: 'var(--surface)', padding: '1.25rem 1.5rem', fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.7 }}>
+            <pre style={{
+              background: 'var(--surface)', padding: '1.25rem 1.5rem',
+              fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.75,
+              fontFamily: 'var(--font-mono)',
+            }}>
               <code>{code}</code>
             </pre>
           }>
@@ -326,17 +366,21 @@ function CodePanel({ file }) {
                 language="cpp"
                 style={hlStyle}
                 customStyle={{
-                  margin: 0, borderRadius: 0,
+                  margin: 0,
+                  borderRadius: 0,
                   background: 'var(--surface)',
                   fontSize: '0.875rem',
                   lineHeight: 1.75,
                   padding: '1.25rem 1.5rem',
                   minHeight: '100%',
+                  overflowX: 'visible',  // let parent handle scroll
                 }}
                 showLineNumbers
                 lineNumberStyle={{
-                  color: 'var(--muted)', opacity: 0.35,
-                  userSelect: 'none', minWidth: '2.5em',
+                  color: 'var(--muted)',
+                  opacity: 0.3,
+                  userSelect: 'none',
+                  minWidth: '2.2em',
                   paddingRight: '1em',
                   fontFamily: 'var(--font-mono)',
                 }}
@@ -346,7 +390,11 @@ function CodePanel({ file }) {
                 {code}
               </SyntaxHighlighter>
             ) : (
-              <pre style={{ background: 'var(--surface)', padding: '1.25rem 1.5rem', fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.75 }}>
+              <pre style={{
+                background: 'var(--surface)', padding: '1.25rem 1.5rem',
+                fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.75,
+                fontFamily: 'var(--font-mono)',
+              }}>
                 <code>{code}</code>
               </pre>
             )}
@@ -357,27 +405,137 @@ function CodePanel({ file }) {
   )
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function DsaPage() {
-  const [activeFile, setActiveFile] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeFile, setActiveFile]     = useState(null)
+  const [sidebarOpen, setSidebarOpen]   = useState(true)
+  // mobile: show code panel after a file is picked
+  const [mobileView, setMobileView]     = useState('tree') // 'tree' | 'code'
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
-  // Top-level tree nodes from TOPICS
-  const topicNodes = TOPICS.map(t => ({ name: t.label, path: t.name, type: 'dir', _displayName: t.label }))
+  // Detect mobile on resize
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
 
+  function handleFileClick(file) {
+    setActiveFile(file)
+    if (mobile) setMobileView('code')
+  }
+
+  const topicNodes = TOPICS.map(t => ({
+    name: t.name,
+    path: t.name,
+    type: 'dir',
+    _label: t.label,
+  }))
+
+  // ── Mobile layout ──
+  if (mobile) {
+    return (
+      <div style={{
+        height: '100dvh',
+        paddingTop: '56px',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* mobile top bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '0 14px', height: '40px', flexShrink: 0,
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--glass-bg)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+        }}>
+          <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>
+            {mobileView === 'code' && activeFile
+              ? prettyName(activeFile.name)
+              : 'A2Z DSA — pick a file'}
+          </span>
+          {mobileView === 'code' && (
+            <button
+              onClick={() => setMobileView('tree')}
+              style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
+                color: 'var(--accent)', background: 'none', border: 'none',
+                cursor: 'pointer', padding: '4px 0',
+              }}
+            >
+              ← files
+            </button>
+          )}
+        </div>
+
+        {/* mobile body */}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+          <AnimatePresence mode="wait" initial={false}>
+            {mobileView === 'tree' ? (
+              <motion.div
+                key="tree"
+                initial={{ x: '-100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '-100%', opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}
+              >
+                <div style={{ paddingTop: '8px', paddingBottom: '24px' }}>
+                  {topicNodes.map((node, i) => (
+                    <motion.div
+                      key={node.path}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.04 }}
+                    >
+                      <TreeNode
+                        node={node}
+                        depth={0}
+                        onFileClick={handleFileClick}
+                        activeFile={activeFile?.path}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="code"
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}
+              >
+                <CodePanel
+                  file={activeFile}
+                  onMobileClose={() => setMobileView('tree')}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Desktop layout ──
   return (
     <div style={{
       height: '100dvh',
-      paddingTop: '56px',       // navbar height
+      paddingTop: '56px',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-
       {/* top bar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '0 16px', height: '44px', flexShrink: 0,
+        padding: '0 16px', height: '40px', flexShrink: 0,
         borderBottom: '1px solid var(--border)',
         background: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur)',
@@ -389,23 +547,28 @@ export default function DsaPage() {
           aria-label={sidebarOpen ? 'hide sidebar' : 'show sidebar'}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '28px', height: '28px', borderRadius: '6px',
-            background: sidebarOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+            width: '26px', height: '26px', borderRadius: '6px',
+            background: sidebarOpen
+              ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
+              : 'transparent',
             border: '1px solid',
-            borderColor: sidebarOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)',
+            borderColor: sidebarOpen
+              ? 'color-mix(in srgb, var(--accent) 28%, transparent)'
+              : 'var(--border)',
             color: sidebarOpen ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer', transition: 'all 0.18s',
           }}
         >
-          <TreeStructure size={13} aria-hidden="true" />
+          <TreeStructure size={12} aria-hidden="true" />
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <Code size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text)' }}>
-            dsa
-          </span>
-          <span style={{ color: 'var(--muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>/</span>
-          <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
+            fontWeight: 600, color: 'var(--text)',
+          }}>dsa</span>
+          <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>/</span>
+          <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
             A2Z DSA, solved in C++. Click any file to read the code.
           </span>
         </div>
@@ -414,7 +577,7 @@ export default function DsaPage() {
           href={`https://github.com/${REPO}`}
           target="_blank" rel="noopener noreferrer"
           style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
+            fontFamily: 'var(--font-mono)', fontSize: '0.67rem',
             color: 'var(--muted)', textDecoration: 'none',
             opacity: 0.6, transition: 'opacity 0.15s',
           }}
@@ -425,37 +588,37 @@ export default function DsaPage() {
         </a>
       </div>
 
-      {/* body: sidebar + code panel */}
+      {/* body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-
         {/* sidebar */}
         <AnimatePresence initial={false}>
           {sidebarOpen && (
             <motion.div
               key="sidebar"
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
+              animate={{ width: 232, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               style={{
                 borderRight: '1px solid var(--border)',
-                overflowY: 'auto', overflowX: 'hidden',
+                overflowY: 'auto',
+                overflowX: 'hidden',
                 flexShrink: 0,
-                background: 'color-mix(in srgb, var(--surface) 80%, transparent)',
+                background: 'color-mix(in srgb, var(--surface) 75%, transparent)',
               }}
             >
-              <div style={{ paddingTop: '8px', paddingBottom: '16px', minWidth: 240 }}>
+              <div style={{ paddingTop: '8px', paddingBottom: '16px', minWidth: 232 }}>
                 {topicNodes.map((node, i) => (
                   <motion.div
                     key={node.path}
-                    initial={{ opacity: 0, x: -8 }}
+                    initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.22, delay: i * 0.05 }}
+                    transition={{ duration: 0.2, delay: i * 0.05 }}
                   >
                     <TreeNode
-                      node={{ ...node, name: TOPICS[i].name, _label: TOPICS[i].label }}
+                      node={node}
                       depth={0}
-                      onFileClick={setActiveFile}
+                      onFileClick={handleFileClick}
                       activeFile={activeFile?.path}
                     />
                   </motion.div>
