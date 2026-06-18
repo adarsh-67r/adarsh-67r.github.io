@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowSquareOut, Star, GitFork, CircleNotch,
   Sparkle, Code, GithubLogo, Eye, GitBranch,
-  Clock, Warning,
+  Clock, Warning, ArrowClockwise,
 } from '@phosphor-icons/react'
 import { manualProjects, GITHUB_USERNAME } from '../data/projects'
 import TagBadge from './TagBadge'
@@ -16,6 +16,9 @@ const LANG_COLORS = {
   Go: '#00add8', Rust: '#dea584', Ruby: '#701516', Swift: '#f05138',
   Dart: '#00b4ab', Lua: '#000080', Nix: '#7e7eff', Zig: '#ec915c',
 }
+
+const CACHE_KEY = `gh_cache_${GITHUB_USERNAME}`
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 function timeAgo(iso) {
   if (!iso) return null
@@ -34,9 +37,37 @@ function timeAgo(iso) {
   return `${years}y ago`
 }
 
-async function fetchWithFallback(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`${res.status}`)
+function readCache() {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const { ts, profile, repos } = JSON.parse(raw)
+    if (Date.now() - ts > CACHE_TTL) return null
+    return { profile, repos }
+  } catch {
+    return null
+  }
+}
+
+function writeCache(profile, repos) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), profile, repos }))
+  } catch { /* quota exceeded — silently ignore */ }
+}
+
+const GH_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+}
+
+async function ghFetch(url) {
+  const res = await fetch(url, { headers: GH_HEADERS })
+  if (res.status === 403 || res.status === 429) {
+    const reset = res.headers.get('x-ratelimit-reset')
+    const waitSecs = reset ? Math.ceil((Number(reset) * 1000 - Date.now()) / 1000) : null
+    throw Object.assign(new Error('rate_limit'), { resetIn: waitSecs })
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 
@@ -45,37 +76,57 @@ export default function Projects() {
   const [repos, setRepos] = useState([])
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [sort, setSort] = useState('stars')   // stars | updated | name
+  const [error, setError] = useState(null)   // { msg, resetIn? }
+  const [sort, setSort] = useState('stars')
   const [langFilter, setLangFilter] = useState('all')
-  const hasFetched = repos.length > 0 || error
 
-  useEffect(() => {
-    if (tab !== 'opensource' || hasFetched) return
+  const fetchData = useCallback((force = false) => {
+    if (!force) {
+      const cached = readCache()
+      if (cached) {
+        setProfile(cached.profile)
+        setRepos(cached.repos.filter(r => !r.fork))
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
 
     Promise.all([
-      fetchWithFallback(`https://api.github.com/users/${GITHUB_USERNAME}`),
-      fetchWithFallback(
-        `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&type=public`
-      ),
+      ghFetch(`https://api.github.com/users/${GITHUB_USERNAME}`),
+      ghFetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&type=public&sort=pushed`),
     ])
       .then(([prof, data]) => {
+        if (!Array.isArray(data)) throw new Error('Unexpected response from GitHub.')
+        const filtered = data.filter(r => !r.fork)
+        writeCache(prof, data)
         setProfile(prof)
-        if (!Array.isArray(data)) throw new Error('bad response')
-        setRepos(data.filter(r => !r.fork))
+        setRepos(filtered)
         setLoading(false)
       })
       .catch(err => {
-        setError(err.message.includes('403')
-          ? 'GitHub API rate limit reached. Try again in a minute.'
-          : 'Failed to load repos.')
+        if (err.message === 'rate_limit') {
+          const mins = err.resetIn ? Math.ceil(err.resetIn / 60) : null
+          setError({
+            msg: mins
+              ? `GitHub API rate limit hit. Resets in ~${mins} min.`
+              : 'GitHub API rate limit hit. Try again in a few minutes.',
+            resetIn: err.resetIn,
+          })
+        } else {
+          setError({ msg: 'Failed to load repos. Check your connection and retry.' })
+        }
         setLoading(false)
       })
-  }, [tab, hasFetched])
+  }, [])
 
-  // Derived lists
+  useEffect(() => {
+    if (tab !== 'opensource') return
+    if (repos.length > 0 || loading) return
+    fetchData()
+  }, [tab, repos.length, loading, fetchData])
+
   const langs = ['all', ...Array.from(new Set(repos.map(r => r.language).filter(Boolean))).sort()]
 
   const filtered = repos
@@ -141,16 +192,27 @@ export default function Projects() {
                 >
                   @{profile.login}
                 </a>
-                <div style={{ display: 'flex', gap: '16px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '16px', marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
                   {[
-                    { label: 'repos',      val: profile.public_repos },
-                    { label: 'followers',  val: profile.followers },
-                    { label: 'following',  val: profile.following },
+                    { label: 'repos',     val: profile.public_repos },
+                    { label: 'followers', val: profile.followers },
+                    { label: 'following', val: profile.following },
                   ].map(({ label, val }) => (
                     <span key={label} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)' }}>
                       <span style={{ color: 'var(--text)', fontWeight: 600 }}>{val}</span> {label}
                     </span>
                   ))}
+                  <button
+                    onClick={() => { setRepos([]); setProfile(null); fetchData(true) }}
+                    title="Refresh"
+                    style={{
+                      background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
+                      padding: '3px 7px', cursor: 'pointer', color: 'var(--muted)',
+                      display: 'flex', alignItems: 'center',
+                    }}
+                  >
+                    <ArrowClockwise size={12} />
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -158,7 +220,6 @@ export default function Projects() {
             {/* Controls */}
             {!loading && !error && repos.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {/* Sort */}
                 <div style={{ display: 'flex', gap: '3px', background: 'var(--surface)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   {[['stars','Stars'],['updated','Recent'],['name','A–Z']].map(([v, l]) => (
                     <button
@@ -175,7 +236,6 @@ export default function Projects() {
                   ))}
                 </div>
 
-                {/* Lang filter */}
                 {langs.length > 2 && (
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {langs.map(l => (
@@ -216,15 +276,27 @@ export default function Projects() {
               </div>
             )}
             {error && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px 0', color: 'var(--muted)' }}>
-                <Warning size={15} />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{error}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '24px 0', color: 'var(--muted)', flexWrap: 'wrap' }}>
+                <Warning size={15} style={{ flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{error.msg}</span>
+                <button
+                  onClick={() => fetchData(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 10px', borderRadius: '6px',
+                    border: '1px solid var(--border)', cursor: 'pointer',
+                    background: 'var(--surface)', color: 'var(--muted)',
+                    fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
+                  }}
+                >
+                  <ArrowClockwise size={11} /> retry
+                </button>
               </div>
             )}
             {!loading && !error && filtered.length === 0 && repos.length > 0 && (
               <EmptyState label={`No ${langFilter} repos found.`} />
             )}
-            {!loading && !error && repos.length === 0 && (
+            {!loading && !error && repos.length === 0 && !loading && (
               <EmptyState label="No public repos found." />
             )}
 
@@ -262,7 +334,6 @@ function RepoCard({ repo }) {
       className="repo-card"
       style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}
     >
-      {/* Title row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent)', wordBreak: 'break-word' }}>
           {repo.name}
@@ -270,7 +341,6 @@ function RepoCard({ repo }) {
         <GithubLogo size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }} />
       </div>
 
-      {/* Description */}
       {repo.description && (
         <p style={{
           color: 'var(--muted)', fontSize: '0.78rem',
@@ -283,7 +353,6 @@ function RepoCard({ repo }) {
         </p>
       )}
 
-      {/* Topics */}
       {topics.length > 0 && (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {topics.map(t => (
@@ -297,7 +366,6 @@ function RepoCard({ repo }) {
         </div>
       )}
 
-      {/* Stats footer */}
       <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
         {repo.language && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
