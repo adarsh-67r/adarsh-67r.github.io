@@ -21,6 +21,8 @@ export function ThemeProvider({ children }) {
     root.style.setProperty('--border-subtle', activeTheme.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)')
     root.style.setProperty('--selection',     activeTheme.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')
     root.style.setProperty('--scrollbar', activeTheme.muted)
+    // Sync data-theme so Shiki dual-theme CSS vars (--shiki-light / --shiki-dark) switch correctly
+    root.setAttribute('data-theme', activeTheme.dark ? 'dark' : 'light')
     try { localStorage.setItem('theme', currentTheme) } catch {}
   }, [currentTheme, activeTheme])
 
