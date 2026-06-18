@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Folder, FolderOpen, FileCode, CaretRight,
   Copy, Check, Code, TreeStructure, X,
+  MagnifyingGlass, TextAa, PencilSimple, ArrowCounterClockwise,
+  Play, SpinnerGap, Terminal,
 } from '@phosphor-icons/react'
 
 const SyntaxHighlighter = lazy(() =>
@@ -15,10 +17,19 @@ const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
 
+// Piston API — free, no key needed
+const PISTON_API = 'https://emkc.org/api/v2/piston/execute'
+
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
   { name: '02_SortingTechniques', label: 'Sorting Techniques' },
   { name: '03_Array',             label: 'Arrays' },
+]
+
+const FONT_SIZES = [
+  { label: 'A−', value: '0.75rem', title: 'Small' },
+  { label: 'A',  value: '0.875rem', title: 'Medium (default)' },
+  { label: 'A+', value: '1rem',  title: 'Large' },
 ]
 
 async function ghFetch(path) {
@@ -36,6 +47,50 @@ function prettyName(raw) {
     .replace(/_/g, ' ')
     .replace(/\.cpp$/, '')
     .trim()
+}
+
+// ── Icon button helper ─────────────────────────────────────────────────────────
+function IconBtn({ onClick, title, active, children, style = {} }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        gap: '4px',
+        padding: '4px 8px', height: '28px', borderRadius: '6px',
+        background: active
+          ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
+          : 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur-sm)',
+        WebkitBackdropFilter: 'var(--glass-blur-sm)',
+        border: '1px solid',
+        borderColor: active
+          ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
+          : 'var(--border)',
+        color: active ? 'var(--accent)' : 'var(--muted)',
+        fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
+        cursor: 'pointer', transition: 'all 0.18s',
+        whiteSpace: 'nowrap',
+        ...style,
+      }}
+      onMouseEnter={e => {
+        if (!active) {
+          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 35%, transparent)'
+          e.currentTarget.style.color = 'var(--text)'
+        }
+      }}
+      onMouseLeave={e => {
+        if (!active) {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = 'var(--muted)'
+        }
+      }}
+    >
+      {children}
+    </button>
+  )
 }
 
 // ── Reading progress ───────────────────────────────────────────────────────────
@@ -63,9 +118,118 @@ function ReadingProgress({ scrollRef }) {
   )
 }
 
+// ── Search bar ─────────────────────────────────────────────────────────────────
+function SearchBar({ query, onChange, onClose }) {
+  const inputRef = useRef(null)
+  useEffect(() => { inputRef.current?.focus() }, [])
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '8px',
+      padding: '6px 12px',
+      borderBottom: '1px solid var(--border)',
+      background: 'color-mix(in srgb, var(--surface) 80%, transparent)',
+      flexShrink: 0,
+    }}>
+      <MagnifyingGlass size={13} style={{ color: 'var(--muted)', flexShrink: 0 }} aria-hidden="true" />
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={e => onChange(e.target.value)}
+        placeholder="search files…"
+        aria-label="Search files"
+        style={{
+          flex: 1, background: 'transparent', border: 'none', outline: 'none',
+          fontFamily: 'var(--font-mono)', fontSize: '0.8rem',
+          color: 'var(--text)',
+        }}
+      />
+      {query && (
+        <button
+          onClick={() => onChange('')}
+          aria-label="Clear search"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--muted)', display: 'flex', padding: '2px',
+          }}
+        >
+          <X size={11} aria-hidden="true" />
+        </button>
+      )}
+      <button
+        onClick={onClose}
+        aria-label="Close search"
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--muted)', fontFamily: 'var(--font-mono)',
+          fontSize: '0.7rem', padding: '2px 4px',
+        }}
+      >
+        esc
+      </button>
+    </div>
+  )
+}
+
+// ── Flat search results ────────────────────────────────────────────────────────
+function SearchResults({ query, allFiles, onFileClick, activeFile }) {
+  const filtered = allFiles.filter(f =>
+    prettyName(f.name).toLowerCase().includes(query.toLowerCase()) ||
+    f.path.toLowerCase().includes(query.toLowerCase())
+  )
+  if (!query) return null
+  return (
+    <div style={{ flex: 1, overflowY: 'auto' }}>
+      {filtered.length === 0 ? (
+        <div style={{
+          padding: '24px 16px', textAlign: 'center',
+          color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem',
+        }}>
+          no files match "{query}"
+        </div>
+      ) : filtered.map(f => {
+        const isActive = activeFile === f.path
+        return (
+          <button
+            key={f.path}
+            onClick={() => onFileClick(f)}
+            style={{
+              width: '100%', display: 'flex', flexDirection: 'column',
+              alignItems: 'flex-start', gap: '2px',
+              padding: '7px 12px',
+              background: isActive
+                ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
+                : 'transparent',
+              border: 'none',
+              borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--text) 6%, transparent)' }}
+            onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+          >
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.76rem',
+              color: isActive ? 'var(--accent)' : 'var(--text)',
+              fontWeight: 500,
+            }}>
+              {prettyName(f.name)}
+            </span>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
+              color: 'var(--muted)', opacity: 0.7,
+            }}>
+              {f.path.split('/').slice(0, -1).map(prettyName).join(' / ')}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Tree node ──────────────────────────────────────────────────────────────────
-function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
-  const [open, setOpen]       = useState(false)
+function TreeNode({ node, depth = 0, onFileClick, activeFile, onFilesLoaded }) {
+  const [open, setOpen]         = useState(false)
   const [children, setChildren] = useState(null)
   const [loading, setLoading]   = useState(false)
 
@@ -85,7 +249,10 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
           if (a.type === b.type) return a.name.localeCompare(b.name)
           return a.type === 'dir' ? -1 : 1
         })
-        setChildren(items.filter(i => i.type === 'dir' || i.name.endsWith('.cpp')))
+        const filtered = items.filter(i => i.type === 'dir' || i.name.endsWith('.cpp'))
+        setChildren(filtered)
+        // register file leaves for search index
+        if (onFilesLoaded) onFilesLoaded(filtered.filter(i => i.type === 'file'))
       } catch { setChildren([]) }
       finally { setLoading(false) }
     }
@@ -182,6 +349,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
                 depth={depth + 1}
                 onFileClick={onFileClick}
                 activeFile={activeFile}
+                onFilesLoaded={onFilesLoaded}
               />
             ))}
           </motion.div>
@@ -191,13 +359,90 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
+// ── Output panel ──────────────────────────────────────────────────────────────
+function OutputPanel({ result, running, onClose }) {
+  const hasOutput = result && (result.stdout || result.stderr || result.compile_output)
+  return (
+    <AnimatePresence>
+      {(running || result) && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          style={{
+            borderTop: '1px solid var(--border)',
+            background: 'color-mix(in srgb, var(--surface) 90%, #000 10%)',
+            flexShrink: 0,
+            overflow: 'hidden',
+          }}
+        >
+          {/* output header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '6px 16px',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <Terminal size={12} style={{ color: 'var(--accent)' }} aria-hidden="true" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--muted)', flex: 1 }}>
+              output
+            </span>
+            {result?.time && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.67rem', color: 'var(--muted)', opacity: 0.6 }}>
+                {result.time}s
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Close output"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* output body */}
+          <div style={{ padding: '10px 16px', maxHeight: '200px', overflowY: 'auto' }}>
+            {running && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)' }}>
+                <SpinnerGap size={13} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--accent)' }} aria-hidden="true" />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>running…</span>
+              </div>
+            )}
+            {!running && hasOutput && (
+              <pre style={{
+                fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
+                color: result.stderr || result.compile_output ? '#f38ba8' : '#a6e3a1',
+                margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                lineHeight: 1.6,
+              }}>
+                {result.compile_output || result.stderr || result.stdout}
+              </pre>
+            )}
+            {!running && result && !hasOutput && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)' }}>
+                (no output)
+              </span>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Code panel ────────────────────────────────────────────────────────────────
-function CodePanel({ file, onMobileClose }) {
-  const [code, setCode]       = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(false)
-  const [copied, setCopied]   = useState(false)
-  const [hlStyle, setHlStyle] = useState(cachedTheme)
+function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
+  const [code, setCode]           = useState(null)
+  const [origCode, setOrigCode]   = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState(false)
+  const [copied, setCopied]       = useState(false)
+  const [hlStyle, setHlStyle]     = useState(cachedTheme)
+  const [editMode, setEditMode]   = useState(false)
+  const [editCode, setEditCode]   = useState('')
+  const [running, setRunning]     = useState(false)
+  const [runResult, setRunResult] = useState(null)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -211,20 +456,65 @@ function CodePanel({ file, onMobileClose }) {
 
   useEffect(() => {
     if (!file) return
-    setCode(null); setError(false); setLoading(true)
+    setCode(null); setOrigCode(null); setError(false); setLoading(true)
+    setEditMode(false); setRunResult(null)
     if (scrollRef.current) scrollRef.current.scrollTop = 0
     fetch(`${GH_RAW}/${file.path}`)
       .then(r => { if (!r.ok) throw new Error(); return r.text() })
-      .then(t => { setCode(t); setLoading(false) })
+      .then(t => { setCode(t); setOrigCode(t); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
   }, [file?.path])
 
   function handleCopy() {
-    if (!code) return
-    navigator.clipboard.writeText(code).then(() => {
+    const src = editMode ? editCode : code
+    if (!src) return
+    navigator.clipboard.writeText(src).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  function handleEdit() {
+    setEditCode(code)
+    setEditMode(true)
+    setRunResult(null)
+  }
+
+  function handleReset() {
+    setCode(origCode)
+    setEditCode(origCode)
+    setEditMode(false)
+    setRunResult(null)
+  }
+
+  async function handleRun() {
+    const src = editMode ? editCode : code
+    if (!src || running) return
+    setRunning(true)
+    setRunResult(null)
+    try {
+      const res = await fetch(PISTON_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'cpp',
+          version: '*',
+          files: [{ name: 'main.cpp', content: src }],
+        }),
+      })
+      const data = await res.json()
+      const run = data.run || {}
+      setRunResult({
+        stdout: run.stdout || '',
+        stderr: run.stderr || '',
+        compile_output: data.compile?.stderr || '',
+        time: run.time,
+      })
+    } catch (e) {
+      setRunResult({ stderr: 'network error — could not reach Piston API', stdout: '', compile_output: '' })
+    } finally {
+      setRunning(false)
+    }
   }
 
   // empty state
@@ -241,9 +531,11 @@ function CodePanel({ file, onMobileClose }) {
     </div>
   )
 
-  const lines = code ? code.split('\n').length : 0
+  const displayCode = editMode ? editCode : code
+  const lines = displayCode ? displayCode.split('\n').length : 0
   const parts = file.path.split('/')
   const topicLabel = parts.slice(0, -1).map(prettyName).join(' / ')
+  const isDirty = editMode && editCode !== origCode
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
@@ -252,30 +544,20 @@ function CodePanel({ file, onMobileClose }) {
       {/* file header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: '10px', padding: '10px 16px', flexShrink: 0,
+        gap: '10px', padding: '6px 16px', flexShrink: 0,
         borderBottom: '1px solid var(--border)',
         background: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur-sm)',
         WebkitBackdropFilter: 'var(--glass-blur-sm)',
+        flexWrap: 'wrap',
+        rowGap: '6px',
       }}>
+        {/* left: back + filename */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          {/* mobile back button */}
           {onMobileClose && (
-            <button
-              onClick={onMobileClose}
-              aria-label="Back to file list"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '28px', height: '28px', borderRadius: '6px',
-                background: 'transparent', border: '1px solid var(--border)',
-                color: 'var(--muted)', cursor: 'pointer', flexShrink: 0,
-                transition: 'color 0.15s, border-color 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-            >
+            <IconBtn onClick={onMobileClose} title="Back to file list">
               <X size={12} aria-hidden="true" />
-            </button>
+            </IconBtn>
           )}
           <FileCode size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
           <div style={{ minWidth: 0 }}>
@@ -285,6 +567,12 @@ function CodePanel({ file, onMobileClose }) {
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {file.name}
+              {isDirty && (
+                <span style={{
+                  marginLeft: '6px', fontSize: '0.65rem',
+                  color: 'var(--accent)', opacity: 0.8,
+                }}>● edited</span>
+              )}
             </div>
             <div style={{
               fontSize: '0.67rem', color: 'var(--muted)',
@@ -294,47 +582,75 @@ function CodePanel({ file, onMobileClose }) {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+
+        {/* right: controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }}>
           {lines > 0 && (
             <span style={{ fontSize: '0.67rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-              {lines} lines
+              {lines}L
             </span>
           )}
-          <button
-            onClick={handleCopy}
-            aria-label={copied ? 'Copied' : 'Copy code'}
+
+          {/* font size */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {FONT_SIZES.map(fs => (
+              <IconBtn
+                key={fs.value}
+                onClick={() => setFontSize(fs.value)}
+                title={fs.title}
+                active={fontSize === fs.value}
+                style={{ padding: '4px 7px', height: '26px' }}
+              >
+                {fs.label}
+              </IconBtn>
+            ))}
+          </div>
+
+          {/* edit / reset */}
+          {!editMode ? (
+            <IconBtn onClick={handleEdit} title="Edit code (resets on close)">
+              <PencilSimple size={11} aria-hidden="true" />
+              edit
+            </IconBtn>
+          ) : (
+            <IconBtn onClick={handleReset} title="Reset to original code" active>
+              <ArrowCounterClockwise size={11} aria-hidden="true" />
+              reset
+            </IconBtn>
+          )}
+
+          {/* run */}
+          <IconBtn
+            onClick={handleRun}
+            title="Run code (via Piston API)"
+            active={running}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: '5px',
-              padding: '4px 10px', borderRadius: '6px',
-              background: copied
+              background: running
                 ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
-                : 'var(--glass-bg)',
-              backdropFilter: 'var(--glass-blur-sm)',
-              WebkitBackdropFilter: 'var(--glass-blur-sm)',
-              border: '1px solid',
-              borderColor: copied
-                ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
-                : 'var(--border)',
-              color: copied ? 'var(--accent)' : 'var(--muted)',
-              fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
-              cursor: 'pointer', transition: 'all 0.18s',
+                : 'color-mix(in srgb, var(--accent) 8%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
+              color: 'var(--accent)',
             }}
           >
+            {running
+              ? <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite' }} aria-hidden="true" />
+              : <Play size={11} aria-hidden="true" />
+            }
+            run
+          </IconBtn>
+
+          {/* copy */}
+          <IconBtn onClick={handleCopy} title={copied ? 'Copied!' : 'Copy code'} active={copied}>
             {copied ? <Check size={11} aria-hidden="true" /> : <Copy size={11} aria-hidden="true" />}
             {copied ? 'copied!' : 'copy'}
-          </button>
+          </IconBtn>
         </div>
       </div>
 
-      {/* code area */}
+      {/* code / edit area */}
       <div
         ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'auto',  // horizontal scroll for long lines
-          minHeight: 0,
-        }}
+        style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}
       >
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
@@ -351,11 +667,38 @@ function CodePanel({ file, onMobileClose }) {
             ⚠ could not load file
           </div>
         )}
-        {code && !loading && (
+
+        {/* EDIT MODE — plain textarea */}
+        {!loading && !error && editMode && (
+          <textarea
+            value={editCode}
+            onChange={e => setEditCode(e.target.value)}
+            spellCheck={false}
+            aria-label="Edit code"
+            style={{
+              width: '100%',
+              minHeight: '100%',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontFamily: 'var(--font-mono)',
+              fontSize,
+              lineHeight: 1.75,
+              padding: '1.25rem 1.5rem',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              tabSize: 4,
+              overflowX: 'auto',
+            }}
+          />
+        )}
+
+        {/* READ MODE — syntax highlighted */}
+        {!loading && !error && !editMode && code && (
           <Suspense fallback={
             <pre style={{
               background: 'var(--surface)', padding: '1.25rem 1.5rem',
-              fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.75,
+              fontSize, color: 'var(--text)', margin: 0, lineHeight: 1.75,
               fontFamily: 'var(--font-mono)',
             }}>
               <code>{code}</code>
@@ -369,11 +712,11 @@ function CodePanel({ file, onMobileClose }) {
                   margin: 0,
                   borderRadius: 0,
                   background: 'var(--surface)',
-                  fontSize: '0.875rem',
+                  fontSize,
                   lineHeight: 1.75,
                   padding: '1.25rem 1.5rem',
                   minHeight: '100%',
-                  overflowX: 'visible',  // let parent handle scroll
+                  overflowX: 'visible',
                 }}
                 showLineNumbers
                 lineNumberStyle={{
@@ -392,7 +735,7 @@ function CodePanel({ file, onMobileClose }) {
             ) : (
               <pre style={{
                 background: 'var(--surface)', padding: '1.25rem 1.5rem',
-                fontSize: '0.875rem', color: 'var(--text)', margin: 0, lineHeight: 1.75,
+                fontSize, color: 'var(--text)', margin: 0, lineHeight: 1.75,
                 fontFamily: 'var(--font-mono)',
               }}>
                 <code>{code}</code>
@@ -401,19 +744,27 @@ function CodePanel({ file, onMobileClose }) {
           </Suspense>
         )}
       </div>
+
+      {/* output panel */}
+      <OutputPanel
+        result={runResult}
+        running={running}
+        onClose={() => setRunResult(null)}
+      />
     </div>
   )
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function DsaPage() {
-  const [activeFile, setActiveFile]     = useState(null)
-  const [sidebarOpen, setSidebarOpen]   = useState(true)
-  // mobile: show code panel after a file is picked
-  const [mobileView, setMobileView]     = useState('tree') // 'tree' | 'code'
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const [activeFile, setActiveFile]   = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileView, setMobileView]   = useState('tree')
+  const [searchOpen, setSearchOpen]   = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [allFiles, setAllFiles]       = useState([])   // flat list for search
+  const [fontSize, setFontSize]       = useState('0.875rem')
 
-  // Detect mobile on resize
   const [mobile, setMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {
     const fn = () => setMobile(window.innerWidth < 768)
@@ -421,9 +772,35 @@ export default function DsaPage() {
     return () => window.removeEventListener('resize', fn)
   }, [])
 
+  // Keyboard: Ctrl/Cmd+K → open search, Escape → close
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(o => !o)
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false)
+        setSearchQuery('')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // accumulate files discovered by tree expansion
+  const handleFilesLoaded = useCallback((files) => {
+    setAllFiles(prev => {
+      const existing = new Set(prev.map(f => f.path))
+      const fresh = files.filter(f => !existing.has(f.path))
+      return fresh.length ? [...prev, ...fresh] : prev
+    })
+  }, [])
+
   function handleFileClick(file) {
     setActiveFile(file)
     if (mobile) setMobileView('code')
+    if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
   }
 
   const topicNodes = TOPICS.map(t => ({
@@ -432,6 +809,57 @@ export default function DsaPage() {
     type: 'dir',
     _label: t.label,
   }))
+
+  const sidebarContent = (
+    <>
+      {/* search bar */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <SearchBar
+              query={searchQuery}
+              onChange={setSearchQuery}
+              onClose={() => { setSearchOpen(false); setSearchQuery('') }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* results or tree */}
+      {searchOpen && searchQuery ? (
+        <SearchResults
+          query={searchQuery}
+          allFiles={allFiles}
+          onFileClick={handleFileClick}
+          activeFile={activeFile?.path}
+        />
+      ) : (
+        <div style={{ paddingTop: '8px', paddingBottom: '24px' }}>
+          {topicNodes.map((node, i) => (
+            <motion.div
+              key={node.path}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: i * 0.05 }}
+            >
+              <TreeNode
+                node={node}
+                depth={0}
+                onFileClick={handleFileClick}
+                activeFile={activeFile?.path}
+                onFilesLoaded={handleFilesLoaded}
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </>
+  )
 
   // ── Mobile layout ──
   if (mobile) {
@@ -443,7 +871,6 @@ export default function DsaPage() {
         flexDirection: 'column',
         overflow: 'hidden',
       }}>
-        {/* mobile top bar */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           padding: '0 14px', height: '40px', flexShrink: 0,
@@ -456,8 +883,17 @@ export default function DsaPage() {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>
             {mobileView === 'code' && activeFile
               ? prettyName(activeFile.name)
-              : 'A2Z DSA — pick a file'}
+              : 'A2Z DSA'}
           </span>
+          {mobileView === 'tree' && (
+            <button
+              onClick={() => setSearchOpen(o => !o)}
+              aria-label="Search files"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: searchOpen ? 'var(--accent)' : 'var(--muted)', display: 'flex' }}
+            >
+              <MagnifyingGlass size={14} aria-hidden="true" />
+            </button>
+          )}
           {mobileView === 'code' && (
             <button
               onClick={() => setMobileView('tree')}
@@ -472,7 +908,6 @@ export default function DsaPage() {
           )}
         </div>
 
-        {/* mobile body */}
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           <AnimatePresence mode="wait" initial={false}>
             {mobileView === 'tree' ? (
@@ -482,25 +917,9 @@ export default function DsaPage() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: '-100%', opacity: 0 }}
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-                style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}
+                style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
               >
-                <div style={{ paddingTop: '8px', paddingBottom: '24px' }}>
-                  {topicNodes.map((node, i) => (
-                    <motion.div
-                      key={node.path}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.04 }}
-                    >
-                      <TreeNode
-                        node={node}
-                        depth={0}
-                        onFileClick={handleFileClick}
-                        activeFile={activeFile?.path}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
+                {sidebarContent}
               </motion.div>
             ) : (
               <motion.div
@@ -514,6 +933,8 @@ export default function DsaPage() {
                 <CodePanel
                   file={activeFile}
                   onMobileClose={() => setMobileView('tree')}
+                  fontSize={fontSize}
+                  setFontSize={setFontSize}
                 />
               </motion.div>
             )}
@@ -561,6 +982,7 @@ export default function DsaPage() {
         >
           <TreeStructure size={12} aria-hidden="true" />
         </button>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
           <span style={{
@@ -569,10 +991,37 @@ export default function DsaPage() {
           }}>dsa</span>
           <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>/</span>
           <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-            A2Z DSA, solved in C++. Click any file to read the code.
+            A2Z DSA · C++
           </span>
         </div>
+
         <div style={{ flex: 1 }} />
+
+        {/* search toggle */}
+        <button
+          onClick={() => setSearchOpen(o => !o)}
+          title="Search files (Ctrl+K)"
+          aria-label="Search files"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '3px 10px', height: '26px', borderRadius: '6px',
+            background: searchOpen
+              ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
+              : 'transparent',
+            border: '1px solid',
+            borderColor: searchOpen
+              ? 'color-mix(in srgb, var(--accent) 28%, transparent)'
+              : 'var(--border)',
+            color: searchOpen ? 'var(--accent)' : 'var(--muted)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
+            cursor: 'pointer', transition: 'all 0.18s',
+          }}
+        >
+          <MagnifyingGlass size={11} aria-hidden="true" />
+          search
+          <span style={{ opacity: 0.5, fontSize: '0.65rem' }}>⌘K</span>
+        </button>
+
         <a
           href={`https://github.com/${REPO}`}
           target="_blank" rel="noopener noreferrer"
@@ -605,24 +1054,12 @@ export default function DsaPage() {
                 overflowX: 'hidden',
                 flexShrink: 0,
                 background: 'color-mix(in srgb, var(--surface) 75%, transparent)',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <div style={{ paddingTop: '8px', paddingBottom: '16px', minWidth: 232 }}>
-                {topicNodes.map((node, i) => (
-                  <motion.div
-                    key={node.path}
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: i * 0.05 }}
-                  >
-                    <TreeNode
-                      node={node}
-                      depth={0}
-                      onFileClick={handleFileClick}
-                      activeFile={activeFile?.path}
-                    />
-                  </motion.div>
-                ))}
+              <div style={{ minWidth: 232, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {sidebarContent}
               </div>
             </motion.div>
           )}
@@ -630,7 +1067,11 @@ export default function DsaPage() {
 
         {/* code panel */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-          <CodePanel file={activeFile} />
+          <CodePanel
+            file={activeFile}
+            fontSize={fontSize}
+            setFontSize={setFontSize}
+          />
         </div>
       </div>
     </div>
