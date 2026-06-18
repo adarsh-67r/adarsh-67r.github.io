@@ -5,7 +5,7 @@ import {
   Copy, Check, Code, TreeStructure, X,
   MagnifyingGlass, PencilSimple, ArrowCounterClockwise,
   Play, SpinnerGap, Terminal, ArrowSquareIn, WarningCircle,
-  FloppyDisk,
+  FloppyDisk, ChartBar,
 } from '@phosphor-icons/react'
 
 const REPO   = 'adarsh-67r/a2z-dsa'
@@ -13,6 +13,8 @@ const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
 const PISTON = 'https://emkc.org/api/v2/piston/execute'
+// Fallback Piston mirror that has permissive CORS
+const PISTON_FALLBACK = 'https://piston.glitch.me/api/v2/piston/execute'
 
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
@@ -26,7 +28,16 @@ const FONT_SIZES = [
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
 
-// Lazily created shiki highlighter singleton
+// ── CP Stats usernames (edit here) ────────────────────────────────────────────
+const CP_HANDLES = {
+  leetcode:  'adarsh_67r',
+  codeforces: 'adarsh_67r',
+  gfg:       'adarsh_67r',
+  codechef:  'adarsh_67r',
+  atcoder:   'adarsh_67r',
+}
+
+// ── Lazily created shiki highlighter singleton ────────────────────────────────
 let shikiHighlighterPromise = null
 function getHighlighter() {
   if (!shikiHighlighterPromise) {
@@ -79,6 +90,193 @@ function prettyName(raw) {
     .replace(/_/g, ' ')
     .replace(/\.cpp$/, '')
     .trim()
+}
+
+// ── CP Stats fetchers ─────────────────────────────────────────────────────────
+async function fetchLeetCode(handle) {
+  // alfa-leetcode-api — Cloudflare Worker, CORS-open
+  const r = await fetch(`https://alfa-leetcode-api.0x0.workers.dev/${handle}/solved`)
+  if (!r.ok) throw new Error('lc')
+  const d = await r.json()
+  return {
+    platform: 'LeetCode',
+    color: '#ffa116',
+    url: `https://leetcode.com/${handle}`,
+    solved: d.solvedProblem ?? d.totalSolved ?? '—',
+    extra: `Easy ${d.easySolved ?? '?'} · Med ${d.mediumSolved ?? '?'} · Hard ${d.hardSolved ?? '?'}`,
+  }
+}
+
+async function fetchCodeforces(handle) {
+  const r = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`)
+  if (!r.ok) throw new Error('cf')
+  const d = await r.json()
+  const u = d.result?.[0]
+  return {
+    platform: 'Codeforces',
+    color: '#1f8acb',
+    url: `https://codeforces.com/profile/${handle}`,
+    solved: u?.rating ?? '—',
+    label: 'Rating',
+    extra: u?.rank ?? '',
+  }
+}
+
+async function fetchGFG(handle) {
+  // gfg-stats.tashif.codes — FastAPI, CORS-open
+  const r = await fetch(`https://gfg-stats.tashif.codes/${handle}`)
+  if (!r.ok) throw new Error('gfg')
+  const d = await r.json()
+  return {
+    platform: 'GeeksForGeeks',
+    color: '#2f8d46',
+    url: `https://www.geeksforgeeks.org/user/${handle}`,
+    solved: d.totalProblemsSolved ?? d.total_problems_solved ?? '—',
+    extra: `Score ${d.codingScore ?? d.coding_score ?? '?'}`,
+  }
+}
+
+async function fetchCodeChef(handle) {
+  // codechef-api.vercel.app
+  const r = await fetch(`https://codechef-api.vercel.app/${handle}`)
+  if (!r.ok) throw new Error('cc')
+  const d = await r.json()
+  return {
+    platform: 'CodeChef',
+    color: '#5b4638',
+    url: `https://www.codechef.com/users/${handle}`,
+    solved: d.currentRating ?? '—',
+    label: 'Rating',
+    extra: d.stars ?? '',
+  }
+}
+
+async function fetchAtCoder(handle) {
+  // atcoder-api.vercel.app unofficial
+  const r = await fetch(`https://atcoder.jp/users/${handle}/history/json`)
+  if (!r.ok) throw new Error('ac')
+  const d = await r.json()
+  const latest = d?.[d.length - 1]
+  return {
+    platform: 'AtCoder',
+    color: '#222',
+    url: `https://atcoder.jp/users/${handle}`,
+    solved: latest?.NewRating ?? '—',
+    label: 'Rating',
+    extra: latest ? `${d.length} contests` : '',
+  }
+}
+
+// ── CP Stats Panel ────────────────────────────────────────────────────────────
+function CpStatsPanel({ open, onClose }) {
+  const [stats, setStats] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!open) return
+    setLoading(true)
+    setStats({})
+    const fetchers = [
+      ['leetcode',   fetchLeetCode(CP_HANDLES.leetcode)],
+      ['codeforces', fetchCodeforces(CP_HANDLES.codeforces)],
+      ['gfg',        fetchGFG(CP_HANDLES.gfg)],
+      ['codechef',   fetchCodeChef(CP_HANDLES.codechef)],
+      ['atcoder',    fetchAtCoder(CP_HANDLES.atcoder)],
+    ]
+    let done = 0
+    fetchers.forEach(([key, promise]) => {
+      promise
+        .then(data => setStats(s => ({ ...s, [key]: { ok: true, ...data } })))
+        .catch(() => setStats(s => ({ ...s, [key]: { ok: false, platform: key } })))
+        .finally(() => { done++; if (done === fetchers.length) setLoading(false) })
+    })
+  }, [open])
+
+  const platforms = [
+    { key: 'leetcode',   label: 'LeetCode',      color: '#ffa116', url: `https://leetcode.com/${CP_HANDLES.leetcode}` },
+    { key: 'codeforces', label: 'Codeforces',    color: '#1f8acb', url: `https://codeforces.com/profile/${CP_HANDLES.codeforces}` },
+    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/user/${CP_HANDLES.gfg}` },
+    { key: 'codechef',   label: 'CodeChef',      color: '#b45309', url: `https://codechef.com/users/${CP_HANDLES.codechef}` },
+    { key: 'atcoder',    label: 'AtCoder',       color: '#888',    url: `https://atcoder.jp/users/${CP_HANDLES.atcoder}` },
+  ]
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+          transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+          style={{
+            position: 'absolute', top: '44px', right: '12px', zIndex: 50,
+            width: '320px',
+            background: 'color-mix(in srgb, var(--surface) 96%, transparent)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            boxShadow: '0 8px 32px color-mix(in srgb, #000 18%, transparent)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+            <ChartBar size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>cp stats</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', opacity: 0.6 }}>live · today</span>
+            <button onClick={onClose} aria-label="Close stats" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: '2px' }}>
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* cards */}
+          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {platforms.map(({ key, label, color, url }) => {
+              const s = stats[key]
+              return (
+                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '8px 10px', borderRadius: '7px',
+                    background: 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)',
+                    border: '1px solid var(--border)',
+                    textDecoration: 'none', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, var(--surface))`}
+                  onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)'}
+                >
+                  {/* color dot */}
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  {/* name */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text)', flex: 1, fontWeight: 500 }}>{label}</span>
+                  {/* value */}
+                  {!s && loading && (
+                    <span style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', display: 'inline-block' }} />
+                  )}
+                  {s?.ok === false && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', opacity: 0.55 }}>unavailable</span>
+                  )}
+                  {s?.ok && (
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color }}>{s.solved}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', marginLeft: '4px' }}>{s.label ?? 'solved'}</span>
+                      {s.extra && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.7 }}>{s.extra}</div>}
+                    </div>
+                  )}
+                  <span style={{ fontSize: '0.6rem', color: 'var(--muted)', opacity: 0.45 }}>↗</span>
+                </a>
+              )
+            })}
+          </div>
+
+          <div style={{ padding: '6px 14px 10px', textAlign: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.45 }}>edit CP_HANDLES in DsaPage.jsx to set your usernames</span>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
 
 // ── icon button ───────────────────────────────────────────────────────────────
@@ -236,7 +434,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
-// ── terminal drawer (slides up from bottom on errors only) ────────────────────
+// ── terminal drawer ───────────────────────────────────────────────────────────
 function TerminalDrawer({ open, onClose, runResult, running }) {
   const hasErrors = runResult?.compile_output || runResult?.stderr
   return (
@@ -274,7 +472,7 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
   )
 }
 
-// ── IO panel: stdin top, output bottom — always visible on desktop ─────────────
+// ── IO panel ──────────────────────────────────────────────────────────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
   const ranClean = runResult && !runResult.stdout && !runResult.stderr && !runResult.compile_output && !running
   return (
@@ -284,7 +482,7 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
       display: 'flex', flexDirection: 'column',
       minHeight: 0, background: 'color-mix(in srgb, var(--surface) 60%, transparent)',
     }}>
-      {/* stdin — top half */}
+      {/* stdin */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border)', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', height: '30px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'color-mix(in srgb, var(--surface) 80%, transparent)' }}>
           <ArrowSquareIn size={11} style={{ color: 'var(--muted)' }} aria-hidden="true" />
@@ -301,7 +499,7 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
         />
       </div>
 
-      {/* output — bottom half */}
+      {/* output */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', height: '30px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'color-mix(in srgb, var(--surface) 80%, transparent)' }}>
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: running ? 'var(--accent)' : runResult?.stdout ? '#a6e3a1' : ranClean ? '#a6e3a1' : 'var(--muted)', flexShrink: 0, transition: 'background 0.3s' }} aria-hidden="true" />
@@ -320,7 +518,7 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
   )
 }
 
-// ── shiki code view ───────────────────────────────────────────────────────────
+// ── shiki code view (v4 compatible) ──────────────────────────────────────────
 function ShikiCode({ code, fontSize }) {
   const [html, setHtml] = useState('')
 
@@ -328,6 +526,7 @@ function ShikiCode({ code, fontSize }) {
     let cancelled = false
     getHighlighter().then(hl => {
       if (cancelled) return
+      // v4: codeToHtml with dual themes via `themes` object — unchanged from v1
       const result = hl.codeToHtml(code, {
         lang: 'cpp',
         themes: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
@@ -352,6 +551,38 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
+// ── run code — tries primary Piston, falls back if CORS/network error ─────────
+async function runCode(src, stdin) {
+  const payload = {
+    language: 'cpp',
+    version: '*',
+    files: [{ name: 'main.cpp', content: src }],
+    stdin,
+  }
+  const opts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }
+
+  let data
+  try {
+    const res = await fetch(PISTON, opts)
+    if (!res.ok) throw new Error(`status ${res.status}`)
+    data = await res.json()
+  } catch (primaryErr) {
+    // Primary failed — try fallback
+    try {
+      const res2 = await fetch(PISTON_FALLBACK, opts)
+      if (!res2.ok) throw new Error(`fallback status ${res2.status}`)
+      data = await res2.json()
+    } catch {
+      throw new Error('network')
+    }
+  }
+  return data
+}
+
 // ── code panel ────────────────────────────────────────────────────────────────
 function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const [code, setCode]           = useState(null)
@@ -361,16 +592,12 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const [copied, setCopied]       = useState(false)
   const [editMode, setEditMode]   = useState(false)
   const [editCode, setEditCode]   = useState('')
-  const [saved, setSaved]         = useState(false)   // flash state for save btn
+  const [saved, setSaved]         = useState(false)
   const [running, setRunning]     = useState(false)
   const [runResult, setRunResult] = useState(null)
   const [stdin, setStdin]         = useState('')
   const [termOpen, setTermOpen]   = useState(false)
   const scrollRef = useRef(null)
-
-  // In-memory save store: { [filePath]: savedCode }
-  // Lives in a ref so it persists across file switches within the same session
-  // but is naturally wiped on page reload (no localStorage).
   const savedStore = useRef({})
 
   useEffect(() => {
@@ -383,16 +610,11 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
       .then(r => { if (!r.ok) throw new Error(); return r.text() })
       .then(t => {
         setOrigCode(t)
-        // Restore any previously saved edit for this file (same session only)
         const hasSaved = savedStore.current[file.path]
         if (hasSaved) {
-          setCode(hasSaved)
-          setEditCode(hasSaved)
-          setEditMode(true)
+          setCode(hasSaved); setEditCode(hasSaved); setEditMode(true)
         } else {
-          setCode(t)
-          setEditCode('')
-          setEditMode(false)
+          setCode(t); setEditCode(''); setEditMode(false)
         }
         setLoading(false)
       })
@@ -409,11 +631,9 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   function handleReset() {
     setCode(origCode); setEditCode(origCode); setEditMode(false)
     setRunResult(null); setTermOpen(false)
-    // Clear the saved entry for this file
     if (file) delete savedStore.current[file.path]
   }
 
-  // Save: commits editCode as the active code for running — in-memory only
   function handleSave() {
     if (!editMode || !editCode) return
     setCode(editCode)
@@ -427,19 +647,19 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
     if (!src || running) return
     setRunning(true); setRunResult(null)
     try {
-      const res = await fetch(PISTON, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: 'cpp', version: '*', files: [{ name: 'main.cpp', content: src }], stdin }),
-      })
-      const data = await res.json()
+      const data = await runCode(src, stdin)
       const run = data.run || {}
-      const result = { stdout: run.stdout || '', stderr: run.stderr || '', compile_output: data.compile?.stderr || '', time: run.time }
+      const result = {
+        stdout: run.stdout || '',
+        stderr: run.stderr || '',
+        compile_output: data.compile?.stderr || '',
+        time: run.time,
+      }
       setRunResult(result)
       if (result.stderr || result.compile_output) setTermOpen(true)
       else setTermOpen(false)
     } catch {
-      setRunResult({ stdout: '', stderr: '', compile_output: 'network error — could not reach Piston API' })
+      setRunResult({ stdout: '', stderr: '', compile_output: 'network error — could not reach Piston API (both primary + fallback failed)' })
       setTermOpen(true)
     } finally {
       setRunning(false)
@@ -457,13 +677,11 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const lines = displayCode ? displayCode.split('\n').length : 0
   const topicLabel = file.path.split('/').slice(0, -1).map(prettyName).join(' / ')
   const isDirty = editMode && editCode !== origCode
-  const isSavedDirty = editMode && editCode !== code  // unsaved changes vs last save
+  const isSavedDirty = editMode && editCode !== code
   const hasErrors = runResult?.stderr || runResult?.compile_output
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-
-      {/* ── centre: code + terminal drawer ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, position: 'relative' }}>
         <ReadingProgress scrollRef={scrollRef} />
 
@@ -490,16 +708,8 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
             {!editMode
               ? <IconBtn onClick={handleEdit} title="Scratch-pad (resets on file switch)"><PencilSimple size={11} aria-hidden="true" /> edit</IconBtn>
               : <>
-                  <IconBtn
-                    onClick={handleSave}
-                    title="Save for this session (resets on reload)"
-                    success={saved}
-                    active={!saved && !isSavedDirty}
-                  >
-                    {saved
-                      ? <><Check size={11} aria-hidden="true" /> saved!</>
-                      : <><FloppyDisk size={11} aria-hidden="true" /> save</>
-                    }
+                  <IconBtn onClick={handleSave} title="Save for this session (resets on reload)" success={saved} active={!saved && !isSavedDirty}>
+                    {saved ? <><Check size={11} aria-hidden="true" /> saved!</> : <><FloppyDisk size={11} aria-hidden="true" /> save</>}
                   </IconBtn>
                   <IconBtn onClick={handleReset} title="Restore original code"><ArrowCounterClockwise size={11} aria-hidden="true" /> reset</IconBtn>
                 </>
@@ -539,11 +749,9 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
           )}
         </div>
 
-        {/* terminal drawer — slides up from bottom on errors only */}
         <TerminalDrawer open={termOpen} onClose={() => setTermOpen(false)} runResult={runResult} running={running} />
       </div>
 
-      {/* ── right: IO panel — always visible on desktop, LeetCode-style ── */}
       <IOPanel stdin={stdin} onStdinChange={setStdin} runResult={runResult} running={running} />
     </div>
   )
@@ -557,12 +765,12 @@ export default function DsaPage() {
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [fontSize, setFontSize]       = useState('0.875rem')
+  const [statsOpen, setStatsOpen]     = useState(false)
 
-  const [trees, setTrees]     = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
+  const [trees, setTrees]       = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
   const [allFiles, setAllFiles] = useState([])
   const [treeLoading, setTreeLoading] = useState(true)
 
-  // Eagerly load all topic trees on mount so search works immediately
   useEffect(() => {
     let cancelled = false
     async function loadAll() {
@@ -597,7 +805,10 @@ export default function DsaPage() {
   useEffect(() => {
     function onKey(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(o => !o) }
-      if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery('') }
+      if (e.key === 'Escape') {
+        setSearchOpen(false); setSearchQuery('')
+        setStatsOpen(false)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -609,7 +820,6 @@ export default function DsaPage() {
     if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
   }
 
-  // CSS for shiki dual-theme + animations
   const shikiCss = `
     .shiki, .shiki span {
       color: var(--shiki-light) !important;
@@ -668,7 +878,7 @@ export default function DsaPage() {
   )
 
   const topBar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', position: 'relative' }}>
       <button onClick={() => setSidebarOpen(o => !o)} title={sidebarOpen ? 'hide sidebar' : 'show sidebar'} aria-label={sidebarOpen ? 'hide sidebar' : 'show sidebar'}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '6px', background: sidebarOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: sidebarOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: sidebarOpen ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.18s' }}>
         <TreeStructure size={12} aria-hidden="true" />
@@ -676,8 +886,34 @@ export default function DsaPage() {
       <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)' }}>dsa</span>
       <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>/</span>
-      <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>A2Z DSA · C++</span>
+      <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+        {treeLoading ? 'loading…' : `${TOPICS.length} topics · ${allFiles.length} problems · C++`}
+      </span>
       <div style={{ flex: 1 }} />
+
+      {/* CP Stats button + dropdown */}
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setStatsOpen(o => !o)}
+          title="CP stats"
+          aria-label="Toggle CP stats"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '5px',
+            padding: '3px 10px', height: '26px', borderRadius: '6px',
+            background: statsOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+            border: '1px solid',
+            borderColor: statsOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)',
+            color: statsOpen ? 'var(--accent)' : 'var(--muted)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
+            cursor: 'pointer', transition: 'all 0.18s',
+          }}
+        >
+          <ChartBar size={11} aria-hidden="true" />
+          stats
+        </button>
+        <CpStatsPanel open={statsOpen} onClose={() => setStatsOpen(false)} />
+      </div>
+
       <button onClick={() => setSearchOpen(o => !o)} title="Search files (Ctrl+K)" aria-label="Search files"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', height: '26px', borderRadius: '6px', background: searchOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: searchOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: searchOpen ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', cursor: 'pointer', transition: 'all 0.18s' }}>
         <MagnifyingGlass size={11} aria-hidden="true" />
@@ -724,7 +960,6 @@ export default function DsaPage() {
       <style>{shikiCss}</style>
       {topBar}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        {/* collapsible left sidebar */}
         <AnimatePresence initial={false}>
           {sidebarOpen && (
             <motion.div key="sidebar" initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
@@ -734,7 +969,6 @@ export default function DsaPage() {
           )}
         </AnimatePresence>
 
-        {/* centre code + right IO panel */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           <CodePanel file={activeFile} fontSize={fontSize} setFontSize={setFontSize} />
         </div>
