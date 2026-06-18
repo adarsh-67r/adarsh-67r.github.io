@@ -103,19 +103,24 @@
 .copy-btn:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 .copy-btn--copied { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
-/* ── hljs token colours — use CSS vars so every theme works ── */
-.hljs { background: var(--surface) !important; color: var(--text) !important; }
-.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name, .hljs-tag { color: var(--accent) !important; }
-.hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-literal,
-.hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-addition {
-  color: color-mix(in srgb, var(--accent) 70%, #a6e3a1) !important;
+/* ── shiki dual-theme: light uses --shiki-light, dark uses --shiki-dark ── */
+.shiki,
+.shiki span {
+  color: var(--shiki-light) !important;
+  font-style: var(--shiki-light-font-style) !important;
+  font-weight: var(--shiki-light-font-weight) !important;
+  text-decoration: var(--shiki-light-text-decoration) !important;
 }
-.hljs-comment, .hljs-quote, .hljs-deletion, .hljs-meta { color: var(--muted) !important; font-style: italic; }
-.hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link {
-  color: color-mix(in srgb, var(--accent) 55%, #fab387) !important;
+[data-theme='dark'] .shiki,
+[data-theme='dark'] .shiki span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
 }
-.hljs-emphasis { font-style: italic; }
-.hljs-strong { font-weight: bold; }
+/* shiki sets its own background — override to match site surface */
+.shiki { background: var(--surface) !important; }
+.shiki code { font-family: var(--font-mono) !important; }
 
 /* ── blockquote ── */
 .blockquote {

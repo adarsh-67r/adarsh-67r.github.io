@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
@@ -6,11 +6,23 @@ import { ArrowLeft, Calendar, Tag, List, Copy, Check } from '@phosphor-icons/rea
 import { posts } from '../data/posts'
 import '../styles/post.css'
 
-const SyntaxHighlighter = lazy(() =>
-  import('react-syntax-highlighter').then(m => ({ default: m.Prism }))
-)
-
-let cachedTheme = null
+// Lazily created shiki highlighter — singleton, reused across all code blocks
+let shikiHighlighterPromise = null
+function getHighlighter() {
+  if (!shikiHighlighterPromise) {
+    shikiHighlighterPromise = import('shiki').then(({ createHighlighter }) =>
+      createHighlighter({
+        themes: ['catppuccin-latte', 'catppuccin-mocha'],
+        langs: [
+          'cpp', 'c', 'javascript', 'typescript', 'python',
+          'bash', 'shell', 'json', 'yaml', 'markdown', 'html', 'css',
+          'rust', 'go', 'java', 'text',
+        ],
+      })
+    )
+  }
+  return shikiHighlighterPromise
+}
 
 const mdModules = import.meta.glob('../content/blog/*.md', { query: '?raw', import: 'default' })
 
@@ -34,23 +46,33 @@ function ReadingProgress() {
 }
 
 function CodeBlock({ className, children }) {
-  const [style, setStyle] = useState(cachedTheme)
+  const [html, setHtml] = useState('')
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!cachedTheme) {
-      import('../styles/prism-catppuccin.js').then(m => {
-        cachedTheme = m.default
-        setStyle(m.default)
-      })
-    }
-  }, [])
 
   const code = String(children).replace(/\n$/, '')
   const isInline = !className && !code.includes('\n')
-  if (isInline) return <code className="inline-code">{children}</code>
+  const lang = (className || '').replace('language-', '') || 'text'
 
-  const lang = (className || '').replace('language-', '')
+  useEffect(() => {
+    if (isInline) return
+    let cancelled = false
+    getHighlighter().then(hl => {
+      if (cancelled) return
+      // codeToHtml with dual themes — outputs --shiki-light and --shiki-dark CSS vars
+      const result = hl.codeToHtml(code, {
+        lang,
+        themes: {
+          light: 'catppuccin-latte',
+          dark: 'catppuccin-mocha',
+        },
+        defaultColor: false,
+      })
+      setHtml(result)
+    }).catch(() => setHtml(''))
+    return () => { cancelled = true }
+  }, [code, lang, isInline])
+
+  if (isInline) return <code className="inline-code">{children}</code>
 
   function handleCopy() {
     navigator.clipboard.writeText(code).then(() => {
@@ -62,7 +84,7 @@ function CodeBlock({ className, children }) {
   return (
     <div className="code-block">
       <div className="code-block-header">
-        {lang && <span className="code-lang">{lang}</span>}
+        {lang && lang !== 'text' && <span className="code-lang">{lang}</span>}
         <button
           className={`copy-btn${copied ? ' copy-btn--copied' : ''}`}
           onClick={handleCopy}
@@ -72,33 +94,16 @@ function CodeBlock({ className, children }) {
           <span>{copied ? 'copied' : 'copy'}</span>
         </button>
       </div>
-      <Suspense fallback={
+      {html ? (
+        <div
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{ fontSize: '0.875rem', lineHeight: 1.75, overflowX: 'auto' }}
+        />
+      ) : (
         <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto', margin: 0 }}>
           <code style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{code}</code>
         </pre>
-      }>
-        {style ? (
-          <SyntaxHighlighter
-            language={lang || 'text'}
-            style={style}
-            customStyle={{
-              margin: 0,
-              borderRadius: 0,
-              background: 'var(--surface)',
-              fontSize: '0.875rem',
-              lineHeight: 1.75,
-              overflowX: 'auto',
-            }}
-            PreTag="div"
-          >
-            {code}
-          </SyntaxHighlighter>
-        ) : (
-          <pre style={{ background: 'var(--surface)', padding: '1rem', fontSize: '0.875rem', overflowX: 'auto', margin: 0 }}>
-            <code style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{code}</code>
-          </pre>
-        )}
-      </Suspense>
+      )}
     </div>
   )
 }

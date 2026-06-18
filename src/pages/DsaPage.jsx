@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Folder, FolderOpen, FileCode, CaretRight,
@@ -6,30 +6,6 @@ import {
   MagnifyingGlass, PencilSimple, ArrowCounterClockwise,
   Play, SpinnerGap, Terminal, ArrowSquareIn, WarningCircle,
 } from '@phosphor-icons/react'
-
-// ── CSS-based syntax highlighter (theme-aware via CSS vars) ──────────────────
-// Instead of a hardcoded JS theme object, we use highlight.js with a CSS
-// stylesheet injected once. The CSS variables are overridden per-theme in
-// index.css / ThemeContext so code blocks adapt to every site theme.
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import cpp from 'react-syntax-highlighter/dist/esm/languages/hljs/cpp'
-import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs'
-
-SyntaxHighlighter.registerLanguage('cpp', cpp)
-
-// We override every hljs token via CSS variables set in our global stylesheet.
-// The `docco` import is just a structural placeholder so the component renders;
-// all actual colours come from CSS overrides in DsaPage's inline <style> below.
-const HL_OVERRIDE_STYLE = {
-  display: 'block',
-  overflowX: 'auto',
-  padding: '1.25rem 1.5rem',
-  background: 'var(--surface)',
-  color: 'var(--text)',
-  fontFamily: 'var(--font-mono)',
-  borderRadius: 0,
-  margin: 0,
-}
 
 const REPO   = 'adarsh-67r/a2z-dsa'
 const BRANCH = 'main'
@@ -49,6 +25,20 @@ const FONT_SIZES = [
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
 
+// Lazily created shiki highlighter singleton
+let shikiHighlighterPromise = null
+function getHighlighter() {
+  if (!shikiHighlighterPromise) {
+    shikiHighlighterPromise = import('shiki').then(({ createHighlighter }) =>
+      createHighlighter({
+        themes: ['catppuccin-latte', 'catppuccin-mocha'],
+        langs: ['cpp', 'c', 'text'],
+      })
+    )
+  }
+  return shikiHighlighterPromise
+}
+
 async function ghFetch(path) {
   const res = await fetch(`${GH_API}/${path}?ref=${BRANCH}`, {
     headers: { Accept: 'application/vnd.github+json' },
@@ -57,7 +47,6 @@ async function ghFetch(path) {
   return res.json()
 }
 
-// Recursively fetch an entire topic's tree in parallel
 async function fetchTopicTree(topicPath) {
   const items = await ghFetch(topicPath)
   items.sort((a, b) => {
@@ -65,8 +54,6 @@ async function fetchTopicTree(topicPath) {
     return a.type === 'dir' ? -1 : 1
   })
   const filtered = items.filter(i => i.type === 'dir' || i.name.endsWith('.cpp'))
-
-  // recurse into sub-directories in parallel
   const withChildren = await Promise.all(filtered.map(async item => {
     if (item.type !== 'dir') return { ...item, children: null }
     const children = await fetchTopicTree(item.path)
@@ -75,7 +62,6 @@ async function fetchTopicTree(topicPath) {
   return withChildren
 }
 
-// Flatten a loaded tree into a list of file nodes for search
 function flattenFiles(nodes) {
   const out = []
   for (const n of nodes) {
@@ -157,7 +143,7 @@ function SearchBar({ query, onChange, onClose }) {
   )
 }
 
-// ── search results ─────────────────────────────────────────────────────────────
+// ── search results ────────────────────────────────────────────────────────────
 function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   const filtered = allFiles.filter(f =>
     prettyName(f.name).toLowerCase().includes(query.toLowerCase()) ||
@@ -190,7 +176,7 @@ function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   )
 }
 
-// ── tree node (uses pre-loaded children from eager fetch) ─────────────────────
+// ── tree node ─────────────────────────────────────────────────────────────────
 function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   const [open, setOpen] = useState(false)
   const isDir    = node.type === 'dir'
@@ -245,7 +231,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
-// ── terminal drawer (slides up from bottom of code panel on error) ─────────────
+// ── terminal drawer (slides up from bottom on errors only) ────────────────────
 function TerminalDrawer({ open, onClose, runResult, running }) {
   const hasErrors = runResult?.compile_output || runResult?.stderr
   return (
@@ -283,15 +269,21 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
   )
 }
 
-// ── right panel: stdin (top) + output (bottom) ─────────────────────────────────
+// ── IO panel: stdin top, output bottom — always visible on desktop ─────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
   return (
-    <div style={{ width: '300px', flexShrink: 0, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div style={{
+      width: '280px', flexShrink: 0,
+      borderLeft: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column',
+      minHeight: 0, background: 'color-mix(in srgb, var(--surface) 60%, transparent)',
+    }}>
       {/* stdin — top half */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border)', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', height: '30px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'color-mix(in srgb, var(--surface) 80%, transparent)' }}>
           <ArrowSquareIn size={11} style={{ color: 'var(--muted)' }} aria-hidden="true" />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>stdin</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--muted)', flex: 1 }}>stdin</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.45 }}>test input</span>
         </div>
         <textarea
           value={stdin}
@@ -320,20 +312,51 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
   )
 }
 
+// ── shiki code view ───────────────────────────────────────────────────────────
+function ShikiCode({ code, fontSize }) {
+  const [html, setHtml] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    getHighlighter().then(hl => {
+      if (cancelled) return
+      const result = hl.codeToHtml(code, {
+        lang: 'cpp',
+        themes: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
+        defaultColor: false,
+      })
+      setHtml(result)
+    }).catch(() => setHtml(''))
+    return () => { cancelled = true }
+  }, [code])
+
+  if (!html) return (
+    <pre style={{ background: 'var(--surface)', padding: '1.25rem 1.5rem', fontSize, color: 'var(--text)', margin: 0, lineHeight: 1.75, fontFamily: 'var(--font-mono)', minHeight: '100%' }}>
+      <code>{code}</code>
+    </pre>
+  )
+
+  return (
+    <div
+      dangerouslySetInnerHTML={{ __html: html }}
+      style={{ fontSize, lineHeight: 1.75, minHeight: '100%' }}
+    />
+  )
+}
+
 // ── code panel ────────────────────────────────────────────────────────────────
 function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
-  const [code, setCode]             = useState(null)
-  const [origCode, setOrigCode]     = useState(null)
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(false)
-  const [copied, setCopied]         = useState(false)
-  const [editMode, setEditMode]     = useState(false)
-  const [editCode, setEditCode]     = useState('')
-  const [running, setRunning]       = useState(false)
-  const [runResult, setRunResult]   = useState(null)
-  const [stdin, setStdin]           = useState('')
-  const [termOpen, setTermOpen]     = useState(false)
-  const [ioVisible, setIoVisible]   = useState(false)
+  const [code, setCode]           = useState(null)
+  const [origCode, setOrigCode]   = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState(false)
+  const [copied, setCopied]       = useState(false)
+  const [editMode, setEditMode]   = useState(false)
+  const [editCode, setEditCode]   = useState('')
+  const [running, setRunning]     = useState(false)
+  const [runResult, setRunResult] = useState(null)
+  const [stdin, setStdin]         = useState('')
+  const [termOpen, setTermOpen]   = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -370,7 +393,6 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
       const run = data.run || {}
       const result = { stdout: run.stdout || '', stderr: run.stderr || '', compile_output: data.compile?.stderr || '', time: run.time }
       setRunResult(result)
-      // auto-open terminal drawer only on error
       if (result.stderr || result.compile_output) setTermOpen(true)
       else setTermOpen(false)
     } catch {
@@ -396,7 +418,8 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-      {/* code area (left of IO panel) */}
+
+      {/* ── centre: code + terminal drawer ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, position: 'relative' }}>
         <ReadingProgress scrollRef={scrollRef} />
 
@@ -418,27 +441,19 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
             <div style={{ display: 'flex', gap: '2px' }}>
               {FONT_SIZES.map(fs => <IconBtn key={fs.value} onClick={() => setFontSize(fs.value)} title={fs.title} active={fontSize === fs.value} style={{ padding: '4px 7px', height: '26px' }}>{fs.label}</IconBtn>)}
             </div>
-
             {!editMode
               ? <IconBtn onClick={handleEdit} title="Scratch-pad (resets on file switch)"><PencilSimple size={11} aria-hidden="true" /> edit</IconBtn>
               : <IconBtn onClick={handleReset} title="Restore original code" active><ArrowCounterClockwise size={11} aria-hidden="true" /> reset</IconBtn>
             }
-
-            <IconBtn onClick={() => setIoVisible(o => !o)} title="Toggle stdin / output panel" active={ioVisible}>
-              <ArrowSquareIn size={11} aria-hidden="true" /> i/o
-            </IconBtn>
-
             {hasErrors && !running && (
               <IconBtn onClick={() => setTermOpen(o => !o)} title="Toggle terminal" active={termOpen} danger={!termOpen}>
                 <WarningCircle size={11} aria-hidden="true" /> errors
               </IconBtn>
             )}
-
             <IconBtn onClick={handleRun} title="Run code (Piston API)" active={running}
               style={{ background: running ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'color-mix(in srgb, var(--accent) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', color: 'var(--accent)' }}>
               {running ? <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite' }} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />} run
             </IconBtn>
-
             <IconBtn onClick={handleCopy} title={copied ? 'Copied!' : 'Copy code'} active={copied}>
               {copied ? <Check size={11} aria-hidden="true" /> : <Copy size={11} aria-hidden="true" />}{copied ? 'copied!' : 'copy'}
             </IconBtn>
@@ -447,7 +462,11 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
 
         {/* code / edit area */}
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-          {loading && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}><div style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%' }} className="spin" /></div>}
+          {loading && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
+              <div style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          )}
           {error && <div style={{ padding: '32px', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>⚠ could not load file</div>}
 
           {!loading && !error && editMode && (
@@ -457,34 +476,16 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
           )}
 
           {!loading && !error && !editMode && code && (
-            <Suspense fallback={<pre style={{ background: 'var(--surface)', padding: '1.25rem 1.5rem', fontSize, color: 'var(--text)', margin: 0, lineHeight: 1.75, fontFamily: 'var(--font-mono)' }}><code>{code}</code></pre>}>
-              <SyntaxHighlighter
-                language="cpp"
-                style={docco}
-                customStyle={{ ...HL_OVERRIDE_STYLE, fontSize, lineHeight: 1.75, minHeight: '100%' }}
-                showLineNumbers
-                lineNumberStyle={{ color: 'var(--muted)', opacity: 0.3, userSelect: 'none', minWidth: '2.2em', paddingRight: '1em', fontFamily: 'var(--font-mono)' }}
-                wrapLongLines={false}
-                PreTag="div"
-              >{code}</SyntaxHighlighter>
-            </Suspense>
+            <ShikiCode code={code} fontSize={fontSize} />
           )}
         </div>
 
-        {/* terminal drawer — slides up from bottom, only on errors */}
+        {/* terminal drawer — slides up from bottom on errors only */}
         <TerminalDrawer open={termOpen} onClose={() => setTermOpen(false)} runResult={runResult} running={running} />
       </div>
 
-      {/* IO panel — right side */}
-      <AnimatePresence>
-        {ioVisible && (
-          <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 300, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }} style={{ overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ width: '300px', height: '100%' }}>
-              <IOPanel stdin={stdin} onStdinChange={setStdin} runResult={runResult} running={running} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── right: IO panel — always visible on desktop, LeetCode-style ── */}
+      <IOPanel stdin={stdin} onStdinChange={setStdin} runResult={runResult} running={running} />
     </div>
   )
 }
@@ -498,12 +499,11 @@ export default function DsaPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [fontSize, setFontSize]       = useState('0.875rem')
 
-  // Eagerly loaded tree: { [topicName]: Node[] | null (loading) }
-  const [trees, setTrees]   = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
+  const [trees, setTrees]     = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
   const [allFiles, setAllFiles] = useState([])
   const [treeLoading, setTreeLoading] = useState(true)
 
-  // Load all topic trees on mount
+  // Eagerly load all topic trees on mount so search works immediately
   useEffect(() => {
     let cancelled = false
     async function loadAll() {
@@ -550,6 +550,27 @@ export default function DsaPage() {
     if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
   }
 
+  // CSS for shiki dual-theme + animations
+  const shikiCss = `
+    .shiki, .shiki span {
+      color: var(--shiki-light) !important;
+      font-style: var(--shiki-light-font-style) !important;
+      font-weight: var(--shiki-light-font-weight) !important;
+      text-decoration: var(--shiki-light-text-decoration) !important;
+    }
+    [data-theme='dark'] .shiki,
+    [data-theme='dark'] .shiki span {
+      color: var(--shiki-dark) !important;
+      font-style: var(--shiki-dark-font-style) !important;
+      font-weight: var(--shiki-dark-font-weight) !important;
+      text-decoration: var(--shiki-dark-text-decoration) !important;
+    }
+    .shiki { background: var(--surface) !important; padding: 1.25rem 1.5rem; overflow-x: auto; margin: 0; }
+    .shiki code { font-family: var(--font-mono) !important; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  `
+
   const sidebarContent = (
     <>
       <AnimatePresence>
@@ -565,7 +586,6 @@ export default function DsaPage() {
       ) : (
         <div style={{ paddingTop: '8px', paddingBottom: '24px' }}>
           {treeLoading ? (
-            // skeleton while trees are loading
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '2px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', animationDelay: `${i * 0.1}s` }} />
@@ -613,24 +633,10 @@ export default function DsaPage() {
     </div>
   )
 
-  // ── CSS token overrides for hljs so it uses site CSS vars ──
-  const hljsCss = `
-    .hljs { background: var(--surface) !important; color: var(--text) !important; }
-    .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name, .hljs-tag { color: var(--accent) !important; }
-    .hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-literal, .hljs-template-tag,
-    .hljs-template-variable, .hljs-type, .hljs-addition { color: color-mix(in srgb, var(--accent) 70%, #a6e3a1) !important; }
-    .hljs-comment, .hljs-quote, .hljs-deletion, .hljs-meta { color: var(--muted) !important; font-style: italic; }
-    .hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link { color: color-mix(in srgb, var(--accent) 55%, #fab387) !important; }
-    .hljs-emphasis { font-style: italic; }
-    .hljs-strong { font-weight: bold; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  `
-
   if (mobile) {
     return (
       <div style={{ height: '100dvh', paddingTop: '56px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <style>{hljsCss}</style>
+        <style>{shikiCss}</style>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 14px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' }}>
           <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>{mobileView === 'code' && activeFile ? prettyName(activeFile.name) : 'A2Z DSA'}</span>
@@ -656,10 +662,10 @@ export default function DsaPage() {
 
   return (
     <div style={{ height: '100dvh', paddingTop: '56px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <style>{hljsCss}</style>
+      <style>{shikiCss}</style>
       {topBar}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        {/* sidebar */}
+        {/* collapsible left sidebar */}
         <AnimatePresence initial={false}>
           {sidebarOpen && (
             <motion.div key="sidebar" initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
@@ -669,7 +675,7 @@ export default function DsaPage() {
           )}
         </AnimatePresence>
 
-        {/* code panel + IO panel */}
+        {/* centre code + right IO panel */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           <CodePanel file={activeFile} fontSize={fontSize} setFontSize={setFontSize} />
         </div>
