@@ -13,8 +13,7 @@ const BRANCH = 'main'
 const GH_API = `https://api.github.com/repos/${REPO}/contents`
 const GH_RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`
 const PISTON = 'https://emkc.org/api/v2/piston/execute'
-// Fallback Piston mirror that has permissive CORS
-const PISTON_FALLBACK = 'https://piston.glitch.me/api/v2/piston/execute'
+const PISTON_TIMEOUT_MS = 12000
 
 const TOPICS = [
   { name: '01_Basics',            label: 'Basics' },
@@ -28,25 +27,28 @@ const FONT_SIZES = [
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
 
-// ── CP Stats usernames (edit here) ────────────────────────────────────────────
+// ── CP Stats usernames ───────────────────────────────────────────────────────────────────────────────
 const CP_HANDLES = {
-  leetcode:  'adarsh_67r',
-  codeforces: 'adarsh_67r',
-  gfg:       'adarsh_67r',
-  codechef:  'adarsh_67r',
-  atcoder:   'adarsh_67r',
+  leetcode:   'adarsh-67',
+  codeforces: 'adarsh67',
+  gfg:        'adarsh67',
+  codechef:   'adarsh67r',
+  atcoder:    'adarsh67',
 }
 
-// ── Lazily created shiki highlighter singleton ────────────────────────────────
+// ── Shiki highlighter singleton ─────────────────────────────────────────────────────────────────────────
 let shikiHighlighterPromise = null
 function getHighlighter() {
   if (!shikiHighlighterPromise) {
     shikiHighlighterPromise = import('shiki').then(({ createHighlighter }) =>
       createHighlighter({
         themes: ['catppuccin-latte', 'catppuccin-mocha'],
-        langs: ['cpp', 'c', 'text'],
+        langs:  ['cpp', 'c', 'text'],
       })
-    )
+    ).catch(err => {
+      shikiHighlighterPromise = null   // allow retry on next render
+      throw err
+    })
   }
   return shikiHighlighterPromise
 }
@@ -92,23 +94,37 @@ function prettyName(raw) {
     .trim()
 }
 
-// ── CP Stats fetchers ─────────────────────────────────────────────────────────
+// ── CP Stats fetchers ──────────────────────────────────────────────────────────────────────────────────
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), ms)
+    ),
+  ])
+}
+
 async function fetchLeetCode(handle) {
-  // alfa-leetcode-api — Cloudflare Worker, CORS-open
-  const r = await fetch(`https://alfa-leetcode-api.0x0.workers.dev/${handle}/solved`)
+  const r = await withTimeout(
+    fetch(`https://alfa-leetcode-api.0x0.workers.dev/${handle}/solved`),
+    8000
+  )
   if (!r.ok) throw new Error('lc')
   const d = await r.json()
   return {
     platform: 'LeetCode',
     color: '#ffa116',
-    url: `https://leetcode.com/${handle}`,
+    url: `https://leetcode.com/u/${handle}`,
     solved: d.solvedProblem ?? d.totalSolved ?? '—',
     extra: `Easy ${d.easySolved ?? '?'} · Med ${d.mediumSolved ?? '?'} · Hard ${d.hardSolved ?? '?'}`,
   }
 }
 
 async function fetchCodeforces(handle) {
-  const r = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`)
+  const r = await withTimeout(
+    fetch(`https://codeforces.com/api/user.info?handles=${handle}`),
+    8000
+  )
   if (!r.ok) throw new Error('cf')
   const d = await r.json()
   const u = d.result?.[0]
@@ -123,27 +139,36 @@ async function fetchCodeforces(handle) {
 }
 
 async function fetchGFG(handle) {
-  // gfg-stats.tashif.codes — FastAPI, CORS-open
-  const r = await fetch(`https://gfg-stats.tashif.codes/${handle}`)
+  // gfg-stats API — CORS-open
+  const r = await withTimeout(
+    fetch(`https://gfg-stats.tashif.codes/${handle}`),
+    8000
+  )
   if (!r.ok) throw new Error('gfg')
   const d = await r.json()
+  // handle both snake_case and camelCase shapes
+  const solved = d.totalProblemsSolved ?? d.total_problems_solved
+    ?? d.solvedProblems ?? d.solved ?? '—'
+  const score  = d.codingScore ?? d.coding_score ?? '?'
   return {
     platform: 'GeeksForGeeks',
     color: '#2f8d46',
-    url: `https://www.geeksforgeeks.org/user/${handle}`,
-    solved: d.totalProblemsSolved ?? d.total_problems_solved ?? '—',
-    extra: `Score ${d.codingScore ?? d.coding_score ?? '?'}`,
+    url: `https://www.geeksforgeeks.org/profile/${handle}`,
+    solved,
+    extra: `Score ${score}`,
   }
 }
 
 async function fetchCodeChef(handle) {
-  // codechef-api.vercel.app
-  const r = await fetch(`https://codechef-api.vercel.app/${handle}`)
+  const r = await withTimeout(
+    fetch(`https://codechef-api.vercel.app/${handle}`),
+    8000
+  )
   if (!r.ok) throw new Error('cc')
   const d = await r.json()
   return {
     platform: 'CodeChef',
-    color: '#5b4638',
+    color: '#b45309',
     url: `https://www.codechef.com/users/${handle}`,
     solved: d.currentRating ?? '—',
     label: 'Rating',
@@ -152,22 +177,30 @@ async function fetchCodeChef(handle) {
 }
 
 async function fetchAtCoder(handle) {
-  // atcoder-api.vercel.app unofficial
-  const r = await fetch(`https://atcoder.jp/users/${handle}/history/json`)
+  // kenkoooo AtCoder Problems API — CORS-open, no auth needed
+  const r = await withTimeout(
+    fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user=${handle}`),
+    8000
+  )
   if (!r.ok) throw new Error('ac')
   const d = await r.json()
-  const latest = d?.[d.length - 1]
+  // Fetch rating separately from the info endpoint
+  const r2 = await withTimeout(
+    fetch(`https://atcoder-api.vercel.app/users/${handle}`),
+    8000
+  ).catch(() => null)
+  const info = r2?.ok ? await r2.json().catch(() => null) : null
   return {
     platform: 'AtCoder',
-    color: '#222',
+    color: '#888',
     url: `https://atcoder.jp/users/${handle}`,
-    solved: latest?.NewRating ?? '—',
-    label: 'Rating',
-    extra: latest ? `${d.length} contests` : '',
+    solved: d.count ?? '—',
+    label: 'ACs',
+    extra: info?.rating ? `Rating ${info.rating}` : '',
   }
 }
 
-// ── CP Stats Panel ────────────────────────────────────────────────────────────
+// ── CP Stats Panel ──────────────────────────────────────────────────────────────────────────────
 function CpStatsPanel({ open, onClose }) {
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(true)
@@ -193,9 +226,9 @@ function CpStatsPanel({ open, onClose }) {
   }, [open])
 
   const platforms = [
-    { key: 'leetcode',   label: 'LeetCode',      color: '#ffa116', url: `https://leetcode.com/${CP_HANDLES.leetcode}` },
+    { key: 'leetcode',   label: 'LeetCode',      color: '#ffa116', url: `https://leetcode.com/u/${CP_HANDLES.leetcode}` },
     { key: 'codeforces', label: 'Codeforces',    color: '#1f8acb', url: `https://codeforces.com/profile/${CP_HANDLES.codeforces}` },
-    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/user/${CP_HANDLES.gfg}` },
+    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/profile/${CP_HANDLES.gfg}` },
     { key: 'codechef',   label: 'CodeChef',      color: '#b45309', url: `https://codechef.com/users/${CP_HANDLES.codechef}` },
     { key: 'atcoder',    label: 'AtCoder',       color: '#888',    url: `https://atcoder.jp/users/${CP_HANDLES.atcoder}` },
   ]
@@ -246,11 +279,8 @@ function CpStatsPanel({ open, onClose }) {
                   onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, var(--surface))`}
                   onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)'}
                 >
-                  {/* color dot */}
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                  {/* name */}
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text)', flex: 1, fontWeight: 500 }}>{label}</span>
-                  {/* value */}
                   {!s && loading && (
                     <span style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', display: 'inline-block' }} />
                   )}
@@ -269,17 +299,13 @@ function CpStatsPanel({ open, onClose }) {
               )
             })}
           </div>
-
-          <div style={{ padding: '6px 14px 10px', textAlign: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.45 }}>edit CP_HANDLES in DsaPage.jsx to set your usernames</span>
-          </div>
         </motion.div>
       )}
     </AnimatePresence>
   )
 }
 
-// ── icon button ───────────────────────────────────────────────────────────────
+// ── icon button ──────────────────────────────────────────────────────────────────────────────────────
 function IconBtn({ onClick, title, active, children, style = {}, danger, success }) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
@@ -313,7 +339,7 @@ function IconBtn({ onClick, title, active, children, style = {}, danger, success
   )
 }
 
-// ── reading progress bar ───────────────────────────────────────────────────────
+// ── reading progress bar ─────────────────────────────────────────────────────────────────────────────
 function ReadingProgress({ scrollRef }) {
   const [pct, setPct] = useState(0)
   useEffect(() => {
@@ -330,7 +356,7 @@ function ReadingProgress({ scrollRef }) {
   )
 }
 
-// ── search bar ────────────────────────────────────────────────────────────────
+// ── search bar ────────────────────────────────────────────────────────────────────────────────────
 function SearchBar({ query, onChange, onClose }) {
   const inputRef = useRef(null)
   useEffect(() => { inputRef.current?.focus() }, [])
@@ -346,7 +372,7 @@ function SearchBar({ query, onChange, onClose }) {
   )
 }
 
-// ── search results ────────────────────────────────────────────────────────────
+// ── search results ───────────────────────────────────────────────────────────────────────────────
 function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   const filtered = allFiles.filter(f =>
     prettyName(f.name).toLowerCase().includes(query.toLowerCase()) ||
@@ -379,7 +405,7 @@ function SearchResults({ query, allFiles, onFileClick, activeFile }) {
   )
 }
 
-// ── tree node ─────────────────────────────────────────────────────────────────
+// ── tree node ──────────────────────────────────────────────────────────────────────────────────────
 function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   const [open, setOpen] = useState(false)
   const isDir    = node.type === 'dir'
@@ -434,7 +460,7 @@ function TreeNode({ node, depth = 0, onFileClick, activeFile }) {
   )
 }
 
-// ── terminal drawer ───────────────────────────────────────────────────────────
+// ── terminal drawer ──────────────────────────────────────────────────────────────────────────────
 function TerminalDrawer({ open, onClose, runResult, running }) {
   const hasErrors = runResult?.compile_output || runResult?.stderr
   return (
@@ -472,7 +498,7 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
   )
 }
 
-// ── IO panel ──────────────────────────────────────────────────────────────────
+// ── IO panel ───────────────────────────────────────────────────────────────────────────────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
   const ranClean = runResult && !runResult.stdout && !runResult.stderr && !runResult.compile_output && !running
   return (
@@ -507,8 +533,17 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
           {running && <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px' }}>
-          {!runResult && !running && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)', opacity: 0.5 }}>hit ▶ run to see output</span>}
-          {runResult?.stdout && <pre style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#a6e3a1', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}>{runResult.stdout}</pre>}
+          {!runResult && !running && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)', opacity: 0.5 }}>hit ▶ run to see output</span>
+          )}
+          {running && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)', opacity: 0.6 }}>running…</span>
+          )}
+          {runResult?.stdout && (
+            <pre style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#a6e3a1', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}>
+              {runResult.stdout}
+            </pre>
+          )}
           {ranClean && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#a6e3a1', opacity: 0.75 }}>✓ ran · no output</span>
           )}
@@ -518,27 +553,40 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
   )
 }
 
-// ── shiki code view (v4 compatible) ──────────────────────────────────────────
+// ── shiki code view (v4 compatible) ────────────────────────────────────────────────────────────────────
 function ShikiCode({ code, fontSize }) {
   const [html, setHtml] = useState('')
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    getHighlighter().then(hl => {
-      if (cancelled) return
-      // v4: codeToHtml with dual themes via `themes` object — unchanged from v1
-      const result = hl.codeToHtml(code, {
-        lang: 'cpp',
-        themes: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
-        defaultColor: false,
+    setHtml('')
+    setFailed(false)
+    getHighlighter()
+      .then(hl => {
+        if (cancelled) return
+        // Works identically in shiki v1, v2, v3, v4
+        const result = hl.codeToHtml(code, {
+          lang: 'cpp',
+          themes: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
+          defaultColor: false,
+        })
+        setHtml(result)
       })
-      setHtml(result)
-    }).catch(() => setHtml(''))
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
     return () => { cancelled = true }
   }, [code])
 
-  if (!html) return (
-    <pre style={{ background: 'var(--surface)', padding: '1.25rem 1.5rem', fontSize, color: 'var(--text)', margin: 0, lineHeight: 1.75, fontFamily: 'var(--font-mono)', minHeight: '100%' }}>
+  // Plain fallback while loading or if shiki fails
+  if (!html || failed) return (
+    <pre style={{
+      background: 'var(--surface)', padding: '1.25rem 1.5rem',
+      fontSize, color: 'var(--text)', margin: 0,
+      lineHeight: 1.75, fontFamily: 'var(--font-mono)', minHeight: '100%',
+      overflowX: 'auto',
+    }}>
       <code>{code}</code>
     </pre>
   )
@@ -551,7 +599,7 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
-// ── run code — tries primary Piston, falls back if CORS/network error ─────────
+// ── run code via Piston with AbortController timeout ───────────────────────────────────────────────
 async function runCode(src, stdin) {
   const payload = {
     language: 'cpp',
@@ -559,31 +607,28 @@ async function runCode(src, stdin) {
     files: [{ name: 'main.cpp', content: src }],
     stdin,
   }
-  const opts = {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }
 
-  let data
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), PISTON_TIMEOUT_MS)
+
   try {
-    const res = await fetch(PISTON, opts)
-    if (!res.ok) throw new Error(`status ${res.status}`)
-    data = await res.json()
-  } catch (primaryErr) {
-    // Primary failed — try fallback
-    try {
-      const res2 = await fetch(PISTON_FALLBACK, opts)
-      if (!res2.ok) throw new Error(`fallback status ${res2.status}`)
-      data = await res2.json()
-    } catch {
-      throw new Error('network')
-    }
+    const res = await fetch(PISTON, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error(`Piston status ${res.status}`)
+    return await res.json()
+  } catch (err) {
+    clearTimeout(timer)
+    const isTimeout = err.name === 'AbortError'
+    throw new Error(isTimeout ? 'timeout' : 'network')
   }
-  return data
 }
 
-// ── code panel ────────────────────────────────────────────────────────────────
+// ── code panel ────────────────────────────────────────────────────────────────────────────────────
 function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const [code, setCode]           = useState(null)
   const [origCode, setOrigCode]   = useState(null)
@@ -645,21 +690,24 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   async function handleRun() {
     const src = editMode ? editCode : code
     if (!src || running) return
-    setRunning(true); setRunResult(null)
+    setRunning(true); setRunResult(null); setTermOpen(false)
     try {
       const data = await runCode(src, stdin)
       const run = data.run || {}
       const result = {
-        stdout: run.stdout || '',
-        stderr: run.stderr || '',
+        stdout:         run.stdout  || '',
+        stderr:         run.stderr  || '',
         compile_output: data.compile?.stderr || '',
-        time: run.time,
+        time:           run.time,
       }
       setRunResult(result)
+      // open terminal only if there are errors
       if (result.stderr || result.compile_output) setTermOpen(true)
-      else setTermOpen(false)
-    } catch {
-      setRunResult({ stdout: '', stderr: '', compile_output: 'network error — could not reach Piston API (both primary + fallback failed)' })
+    } catch (err) {
+      const msg = err.message === 'timeout'
+        ? 'Request timed out after 12 s — Piston API may be overloaded. Try again.'
+        : 'Network error — could not reach Piston API (emkc.org). Check your connection.'
+      setRunResult({ stdout: '', stderr: '', compile_output: msg })
       setTermOpen(true)
     } finally {
       setRunning(false)
@@ -757,7 +805,7 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   )
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// ── main page ───────────────────────────────────────────────────────────────────────────────────
 export default function DsaPage() {
   const [activeFile, setActiveFile]   = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)

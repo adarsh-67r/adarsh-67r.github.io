@@ -8,6 +8,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('shiki'))                    return 'shiki'
           if (id.includes('react-syntax-highlighter')) return 'syntax'
           if (id.includes('react-markdown'))           return 'markdown'
           if (id.includes('framer-motion'))            return 'motion'
