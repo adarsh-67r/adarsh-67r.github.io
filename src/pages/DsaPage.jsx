@@ -27,7 +27,7 @@ const FONT_SIZES = [
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
 
-// ── CP Stats usernames ───────────────────────────────────────────────────────────────────────────────
+// ── CP Stats usernames ───────────────────────────────────────────────────────────────────────────
 const CP_HANDLES = {
   leetcode:   'adarsh-67',
   codeforces: 'adarsh67',
@@ -36,7 +36,7 @@ const CP_HANDLES = {
   atcoder:    'adarsh67',
 }
 
-// ── Shiki highlighter singleton ─────────────────────────────────────────────────────────────────────────
+// ── Shiki highlighter singleton ─────────────────────────────────────────────────────────────────
 let shikiHighlighterPromise = null
 function getHighlighter() {
   if (!shikiHighlighterPromise) {
@@ -46,7 +46,7 @@ function getHighlighter() {
         langs:  ['cpp', 'c', 'text'],
       })
     ).catch(err => {
-      shikiHighlighterPromise = null   // allow retry on next render
+      shikiHighlighterPromise = null
       throw err
     })
   }
@@ -94,7 +94,7 @@ function prettyName(raw) {
     .trim()
 }
 
-// ── CP Stats fetchers ──────────────────────────────────────────────────────────────────────────────────
+// ── CP Stats fetchers ────────────────────────────────────────────────────────────────────────────
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -105,14 +105,14 @@ function withTimeout(promise, ms) {
 }
 
 async function fetchLeetCode(handle) {
-  // leetcode-stats-api — CORS-open proxy
+  // alfa-leetcode-api — actively maintained CORS-open proxy
   const r = await withTimeout(
-    fetch(`https://leetcode-stats-api.herokuapp.com/${handle}`),
-    8000
+    fetch(`https://alfa-leetcode-api.onrender.com/${handle}`),
+    10000
   )
   if (!r.ok) throw new Error('lc')
   const d = await r.json()
-  if (d.status === 'error') throw new Error('lc')
+  if (d.errors || (!d.totalSolved && d.totalSolved !== 0)) throw new Error('lc')
   return {
     platform: 'LeetCode',
     color: '#ffa116',
@@ -123,12 +123,14 @@ async function fetchLeetCode(handle) {
 }
 
 async function fetchCodeforces(handle) {
+  // Official Codeforces REST API — no auth, no CORS issues
   const r = await withTimeout(
     fetch(`https://codeforces.com/api/user.info?handles=${handle}`),
     8000
   )
   if (!r.ok) throw new Error('cf')
   const d = await r.json()
+  if (d.status !== 'OK') throw new Error('cf')
   const u = d.result?.[0]
   return {
     platform: 'Codeforces',
@@ -141,30 +143,31 @@ async function fetchCodeforces(handle) {
 }
 
 async function fetchGFG(handle) {
-  // gfg-stats API — CORS-open
+  // geeks-for-geeks-api by JhaAman — CORS-open, actively maintained
   const r = await withTimeout(
-    fetch(`https://gfg-stats.tashif.codes/${handle}`),
-    8000
+    fetch(`https://geeks-for-geeks-api.vercel.app/${handle}`),
+    9000
   )
   if (!r.ok) throw new Error('gfg')
   const d = await r.json()
-  const solved = d.totalProblemsSolved ?? d.total_problems_solved
-    ?? d.solvedProblems ?? d.solved ?? '—'
-  const score  = d.codingScore ?? d.coding_score ?? '?'
+  if (d.error) throw new Error('gfg')
+  const info = d.info ?? {}
+  const solved = info.totalProblemsSolved ?? info.totalProblemsCount ?? '—'
+  const score  = info.codingScore ?? info.score ?? '?'
   return {
     platform: 'GeeksForGeeks',
     color: '#2f8d46',
-    url: `https://www.geeksforgeeks.org/profile/${handle}`,
+    url: `https://www.geeksforgeeks.org/user/${handle}`,
     solved,
     extra: `Score ${score}`,
   }
 }
 
 async function fetchCodeChef(handle) {
-  // unofficial-codechef-api — CORS-open
+  // codechef-api by bhavy1910 — CORS-open proxy
   const r = await withTimeout(
     fetch(`https://codechef-api.vercel.app/handle/${handle}`),
-    8000
+    9000
   )
   if (!r.ok) throw new Error('cc')
   const d = await r.json()
@@ -175,32 +178,61 @@ async function fetchCodeChef(handle) {
     url: `https://www.codechef.com/users/${handle}`,
     solved: d.currentRating ?? d.rating ?? '—',
     label: 'Rating',
-    extra: d.stars ?? d.highestRating ? `Best ${d.highestRating}` : '',
+    extra: d.highestRating ? `Best ${d.highestRating}` : (d.stars ?? ''),
   }
 }
 
 async function fetchAtCoder(handle) {
   // kenkoooo AtCoder Problems API — CORS-open, no auth needed
+  // ac_rank gives count of unique AC problems
   const r = await withTimeout(
     fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user=${handle}`),
-    8000
+    9000
   )
   if (!r.ok) throw new Error('ac')
   const d = await r.json()
+  // count = number of unique problems solved
+  const solved = d.count ?? '—'
+  // fetch rating separately from contest history
+  let rating = '—'
+  try {
+    const rh = await withTimeout(
+      fetch(`https://atcoder.jp/users/${handle}/history/json`),
+      6000
+    )
+    if (rh.ok) {
+      const history = await rh.json()
+      if (Array.isArray(history) && history.length > 0) {
+        rating = history[history.length - 1].NewRating ?? '—'
+      }
+    }
+  } catch (_) { /* rating stays '—' */ }
   return {
     platform: 'AtCoder',
     color: '#888',
     url: `https://atcoder.jp/users/${handle}`,
-    solved: d.count ?? '—',
+    solved,
     label: 'ACs',
-    extra: '',
+    extra: rating !== '—' ? `Rating ${rating}` : '',
   }
 }
 
-// ── CP Stats Panel ──────────────────────────────────────────────────────────────────────────────
-function CpStatsPanel({ open, onClose }) {
+// ── CP Stats Panel ───────────────────────────────────────────────────────────────────────────────
+// Rendered as a portal-like fixed element to avoid z-index clipping from topBar
+function CpStatsPanel({ open, onClose, anchorRef }) {
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(true)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+
+  // Calculate position from the anchor button
+  useEffect(() => {
+    if (!open || !anchorRef?.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    setPos({
+      top: rect.bottom + 6,
+      right: window.innerWidth - rect.right,
+    })
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -225,7 +257,7 @@ function CpStatsPanel({ open, onClose }) {
   const platforms = [
     { key: 'leetcode',   label: 'LeetCode',      color: '#ffa116', url: `https://leetcode.com/u/${CP_HANDLES.leetcode}` },
     { key: 'codeforces', label: 'Codeforces',    color: '#1f8acb', url: `https://codeforces.com/profile/${CP_HANDLES.codeforces}` },
-    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/profile/${CP_HANDLES.gfg}` },
+    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/user/${CP_HANDLES.gfg}` },
     { key: 'codechef',   label: 'CodeChef',      color: '#b45309', url: `https://codechef.com/users/${CP_HANDLES.codechef}` },
     { key: 'atcoder',    label: 'AtCoder',       color: '#888',    url: `https://atcoder.jp/users/${CP_HANDLES.atcoder}` },
   ]
@@ -233,76 +265,87 @@ function CpStatsPanel({ open, onClose }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -6, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -6, scale: 0.97 }}
-          transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-          style={{
-            position: 'absolute', top: '44px', right: '12px', zIndex: 200,
-            width: '320px',
-            background: 'color-mix(in srgb, var(--surface) 96%, transparent)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            boxShadow: '0 8px 32px color-mix(in srgb, #000 18%, transparent)',
-            backdropFilter: 'var(--glass-blur)',
-            WebkitBackdropFilter: 'var(--glass-blur)',
-            overflow: 'hidden',
-          }}
-        >
-          {/* header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-            <ChartBar size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>cp stats</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', opacity: 0.6 }}>live · today</span>
-            <button onClick={onClose} aria-label="Close stats" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: '2px' }}>
-              <X size={12} aria-hidden="true" />
-            </button>
-          </div>
+        <>
+          {/* backdrop to close on outside click */}
+          <div
+            onClick={onClose}
+            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+            aria-hidden="true"
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            style={{
+              position: 'fixed',
+              top: `${pos.top}px`,
+              right: `${pos.right}px`,
+              zIndex: 999,
+              width: '320px',
+              background: 'color-mix(in srgb, var(--surface) 96%, transparent)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              boxShadow: '0 8px 32px color-mix(in srgb, #000 28%, transparent)',
+              backdropFilter: 'var(--glass-blur)',
+              WebkitBackdropFilter: 'var(--glass-blur)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+              <ChartBar size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>cp stats</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', opacity: 0.6 }}>live · today</span>
+              <button onClick={onClose} aria-label="Close stats" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: '2px' }}>
+                <X size={12} aria-hidden="true" />
+              </button>
+            </div>
 
-          {/* cards */}
-          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {platforms.map(({ key, label, color, url }) => {
-              const s = stats[key]
-              return (
-                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 10px', borderRadius: '7px',
-                    background: 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)',
-                    border: '1px solid var(--border)',
-                    textDecoration: 'none', transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, var(--surface))`}
-                  onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)'}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text)', flex: 1, fontWeight: 500 }}>{label}</span>
-                  {!s && loading && (
-                    <span style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', display: 'inline-block' }} />
-                  )}
-                  {s?.ok === false && (
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', opacity: 0.55 }}>unavailable</span>
-                  )}
-                  {s?.ok && (
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color }}>{s.solved}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', marginLeft: '4px' }}>{s.label ?? 'solved'}</span>
-                      {s.extra && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.7 }}>{s.extra}</div>}
-                    </div>
-                  )}
-                  <span style={{ fontSize: '0.6rem', color: 'var(--muted)', opacity: 0.45 }}>↗</span>
-                </a>
-              )
-            })}
-          </div>
-        </motion.div>
+            {/* cards */}
+            <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {platforms.map(({ key, label, color, url }) => {
+                const s = stats[key]
+                return (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 10px', borderRadius: '7px',
+                      background: 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)',
+                      border: '1px solid var(--border)',
+                      textDecoration: 'none', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, var(--surface))`}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)'}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text)', flex: 1, fontWeight: 500 }}>{label}</span>
+                    {!s && loading && (
+                      <span style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', display: 'inline-block' }} />
+                    )}
+                    {s?.ok === false && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', opacity: 0.55 }}>unavailable</span>
+                    )}
+                    {s?.ok && (
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color }}>{s.solved}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', marginLeft: '4px' }}>{s.label ?? 'solved'}</span>
+                        {s.extra && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.7 }}>{s.extra}</div>}
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.6rem', color: 'var(--muted)', opacity: 0.45 }}>↗</span>
+                  </a>
+                )
+              })}
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   )
 }
 
-// ── icon button ──────────────────────────────────────────────────────────────────────────────────────
+// ── icon button ──────────────────────────────────────────────────────────────────────────────────
 function IconBtn({ onClick, title, active, children, style = {}, danger, success }) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
@@ -336,7 +379,7 @@ function IconBtn({ onClick, title, active, children, style = {}, danger, success
   )
 }
 
-// ── reading progress bar ─────────────────────────────────────────────────────────────────────────────
+// ── reading progress bar ─────────────────────────────────────────────────────────────────────────
 function ReadingProgress({ scrollRef }) {
   const [pct, setPct] = useState(0)
   useEffect(() => {
@@ -550,7 +593,7 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
   )
 }
 
-// ── shiki code view (v4 compatible) ────────────────────────────────────────────────────────────────────
+// ── shiki code view (v4 compatible) ────────────────────────────────────────────────────────────────
 function ShikiCode({ code, fontSize }) {
   const [html, setHtml] = useState('')
   const [failed, setFailed] = useState(false)
@@ -594,7 +637,7 @@ function ShikiCode({ code, fontSize }) {
   )
 }
 
-// ── run code via Piston with AbortController timeout ───────────────────────────────────────────────
+// ── run code via Piston ───────────────────────────────────────────────────────────────────────────
 async function runCode(src, stdin) {
   const payload = {
     language: 'cpp',
@@ -808,6 +851,7 @@ export default function DsaPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [fontSize, setFontSize]       = useState('0.875rem')
   const [statsOpen, setStatsOpen]     = useState(false)
+  const statsButtonRef                = useRef(null)
 
   const [trees, setTrees]       = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
   const [allFiles, setAllFiles] = useState([])
@@ -920,7 +964,7 @@ export default function DsaPage() {
   )
 
   const topBar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', position: 'relative', zIndex: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px', flexShrink: 0, borderBottom: '1px solid var(--border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)' }}>
       <button onClick={() => setSidebarOpen(o => !o)} title={sidebarOpen ? 'hide sidebar' : 'show sidebar'} aria-label={sidebarOpen ? 'hide sidebar' : 'show sidebar'}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '6px', background: sidebarOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: sidebarOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: sidebarOpen ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.18s' }}>
         <TreeStructure size={12} aria-hidden="true" />
@@ -929,28 +973,26 @@ export default function DsaPage() {
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)' }}>dsa</span>
       <div style={{ flex: 1 }} />
 
-      {/* CP Stats button + dropdown */}
-      <div style={{ position: 'relative' }}>
-        <button
-          onClick={() => setStatsOpen(o => !o)}
-          title="CP stats"
-          aria-label="Toggle CP stats"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '5px',
-            padding: '3px 10px', height: '26px', borderRadius: '6px',
-            background: statsOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
-            border: '1px solid',
-            borderColor: statsOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)',
-            color: statsOpen ? 'var(--accent)' : 'var(--muted)',
-            fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-            cursor: 'pointer', transition: 'all 0.18s',
-          }}
-        >
-          <ChartBar size={11} aria-hidden="true" />
-          stats
-        </button>
-        <CpStatsPanel open={statsOpen} onClose={() => setStatsOpen(false)} />
-      </div>
+      {/* CP Stats button — panel rendered at root level via fixed positioning */}
+      <button
+        ref={statsButtonRef}
+        onClick={() => setStatsOpen(o => !o)}
+        title="CP stats"
+        aria-label="Toggle CP stats"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '5px',
+          padding: '3px 10px', height: '26px', borderRadius: '6px',
+          background: statsOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+          border: '1px solid',
+          borderColor: statsOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)',
+          color: statsOpen ? 'var(--accent)' : 'var(--muted)',
+          fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
+          cursor: 'pointer', transition: 'all 0.18s',
+        }}
+      >
+        <ChartBar size={11} aria-hidden="true" />
+        stats
+      </button>
 
       <button onClick={() => setSearchOpen(o => !o)} title="Search files (Ctrl+K)" aria-label="Search files"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', height: '26px', borderRadius: '6px', background: searchOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: searchOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: searchOpen ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', cursor: 'pointer', transition: 'all 0.18s' }}>
@@ -997,6 +1039,8 @@ export default function DsaPage() {
     <div style={{ height: '100dvh', paddingTop: '56px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{shikiCss}</style>
       {topBar}
+      {/* Stats panel rendered here — outside topBar — using fixed positioning so it floats above all content */}
+      <CpStatsPanel open={statsOpen} onClose={() => setStatsOpen(false)} anchorRef={statsButtonRef} />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         <AnimatePresence initial={false}>
           {sidebarOpen && (
