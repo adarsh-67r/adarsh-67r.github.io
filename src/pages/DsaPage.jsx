@@ -5,6 +5,7 @@ import {
   Copy, Check, Code, TreeStructure, X,
   MagnifyingGlass, PencilSimple, ArrowCounterClockwise,
   Play, SpinnerGap, Terminal, ArrowSquareIn, WarningCircle,
+  FloppyDisk,
 } from '@phosphor-icons/react'
 
 const REPO   = 'adarsh-67r/a2z-dsa'
@@ -81,31 +82,35 @@ function prettyName(raw) {
 }
 
 // ── icon button ───────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, active, children, style = {}, danger }) {
+function IconBtn({ onClick, title, active, children, style = {}, danger, success }) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       gap: '4px', padding: '4px 8px', height: '28px', borderRadius: '6px',
       background: danger
         ? 'color-mix(in srgb, #f38ba8 10%, transparent)'
-        : active
-          ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
-          : 'var(--glass-bg)',
+        : success
+          ? 'color-mix(in srgb, #a6e3a1 12%, transparent)'
+          : active
+            ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
+            : 'var(--glass-bg)',
       backdropFilter: 'var(--glass-blur-sm)',
       WebkitBackdropFilter: 'var(--glass-blur-sm)',
       border: '1px solid',
       borderColor: danger
         ? 'color-mix(in srgb, #f38ba8 35%, transparent)'
-        : active
-          ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
-          : 'var(--border)',
-      color: danger ? '#f38ba8' : active ? 'var(--accent)' : 'var(--muted)',
+        : success
+          ? 'color-mix(in srgb, #a6e3a1 35%, transparent)'
+          : active
+            ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
+            : 'var(--border)',
+      color: danger ? '#f38ba8' : success ? '#a6e3a1' : active ? 'var(--accent)' : 'var(--muted)',
       fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
       cursor: 'pointer', transition: 'all 0.18s', whiteSpace: 'nowrap',
       ...style,
     }}
-    onMouseEnter={e => { if (!active && !danger) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 35%, transparent)'; e.currentTarget.style.color = 'var(--text)' } }}
-    onMouseLeave={e => { if (!active && !danger) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' } }}
+    onMouseEnter={e => { if (!active && !danger && !success) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 35%, transparent)'; e.currentTarget.style.color = 'var(--text)' } }}
+    onMouseLeave={e => { if (!active && !danger && !success) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' } }}
     >{children}</button>
   )
 }
@@ -271,6 +276,7 @@ function TerminalDrawer({ open, onClose, runResult, running }) {
 
 // ── IO panel: stdin top, output bottom — always visible on desktop ─────────────
 function IOPanel({ stdin, onStdinChange, runResult, running }) {
+  const ranClean = runResult && !runResult.stdout && !runResult.stderr && !runResult.compile_output && !running
   return (
     <div style={{
       width: '280px', flexShrink: 0,
@@ -298,14 +304,16 @@ function IOPanel({ stdin, onStdinChange, runResult, running }) {
       {/* output — bottom half */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', height: '30px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'color-mix(in srgb, var(--surface) 80%, transparent)' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: running ? 'var(--accent)' : runResult?.stdout ? '#a6e3a1' : 'var(--muted)', flexShrink: 0, transition: 'background 0.3s' }} aria-hidden="true" />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: running ? 'var(--accent)' : runResult?.stdout ? '#a6e3a1' : ranClean ? '#a6e3a1' : 'var(--muted)', flexShrink: 0, transition: 'background 0.3s' }} aria-hidden="true" />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--muted)', flex: 1 }}>output</span>
           {running && <SpinnerGap size={11} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px' }}>
           {!runResult && !running && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)', opacity: 0.5 }}>hit ▶ run to see output</span>}
           {runResult?.stdout && <pre style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#a6e3a1', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}>{runResult.stdout}</pre>}
-          {runResult && !runResult.stdout && !running && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--muted)' }}>(no stdout)</span>}
+          {ranClean && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#a6e3a1', opacity: 0.75 }}>✓ ran · no output</span>
+          )}
         </div>
       </div>
     </div>
@@ -353,20 +361,41 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const [copied, setCopied]       = useState(false)
   const [editMode, setEditMode]   = useState(false)
   const [editCode, setEditCode]   = useState('')
+  const [saved, setSaved]         = useState(false)   // flash state for save btn
   const [running, setRunning]     = useState(false)
   const [runResult, setRunResult] = useState(null)
   const [stdin, setStdin]         = useState('')
   const [termOpen, setTermOpen]   = useState(false)
   const scrollRef = useRef(null)
 
+  // In-memory save store: { [filePath]: savedCode }
+  // Lives in a ref so it persists across file switches within the same session
+  // but is naturally wiped on page reload (no localStorage).
+  const savedStore = useRef({})
+
   useEffect(() => {
     if (!file) return
     setCode(null); setOrigCode(null); setError(false); setLoading(true)
-    setEditMode(false); setEditCode(''); setRunResult(null); setStdin(''); setTermOpen(false)
+    setRunResult(null); setStdin(''); setTermOpen(false); setSaved(false)
     if (scrollRef.current) scrollRef.current.scrollTop = 0
+
     fetch(`${GH_RAW}/${file.path}`)
       .then(r => { if (!r.ok) throw new Error(); return r.text() })
-      .then(t => { setCode(t); setOrigCode(t); setLoading(false) })
+      .then(t => {
+        setOrigCode(t)
+        // Restore any previously saved edit for this file (same session only)
+        const hasSaved = savedStore.current[file.path]
+        if (hasSaved) {
+          setCode(hasSaved)
+          setEditCode(hasSaved)
+          setEditMode(true)
+        } else {
+          setCode(t)
+          setEditCode('')
+          setEditMode(false)
+        }
+        setLoading(false)
+      })
       .catch(() => { setError(true); setLoading(false) })
   }, [file?.path])
 
@@ -377,7 +406,21 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   }
 
   function handleEdit() { setEditCode(code); setEditMode(true) }
-  function handleReset() { setCode(origCode); setEditCode(origCode); setEditMode(false); setRunResult(null); setTermOpen(false) }
+  function handleReset() {
+    setCode(origCode); setEditCode(origCode); setEditMode(false)
+    setRunResult(null); setTermOpen(false)
+    // Clear the saved entry for this file
+    if (file) delete savedStore.current[file.path]
+  }
+
+  // Save: commits editCode as the active code for running — in-memory only
+  function handleSave() {
+    if (!editMode || !editCode) return
+    setCode(editCode)
+    savedStore.current[file.path] = editCode
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   async function handleRun() {
     const src = editMode ? editCode : code
@@ -414,6 +457,7 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
   const lines = displayCode ? displayCode.split('\n').length : 0
   const topicLabel = file.path.split('/').slice(0, -1).map(prettyName).join(' / ')
   const isDirty = editMode && editCode !== origCode
+  const isSavedDirty = editMode && editCode !== code  // unsaved changes vs last save
   const hasErrors = runResult?.stderr || runResult?.compile_output
 
   return (
@@ -430,7 +474,9 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
             <FileCode size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {file.name}{isDirty && <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: 'var(--accent)', opacity: 0.8 }}>● edited</span>}
+                {file.name}
+                {isDirty && !isSavedDirty && <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: '#a6e3a1', opacity: 0.9 }}>● saved</span>}
+                {isSavedDirty && <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: 'var(--accent)', opacity: 0.8 }}>● edited</span>}
               </div>
               <div style={{ fontSize: '0.67rem', color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginTop: '1px' }}>{topicLabel}</div>
             </div>
@@ -443,7 +489,20 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
             </div>
             {!editMode
               ? <IconBtn onClick={handleEdit} title="Scratch-pad (resets on file switch)"><PencilSimple size={11} aria-hidden="true" /> edit</IconBtn>
-              : <IconBtn onClick={handleReset} title="Restore original code" active><ArrowCounterClockwise size={11} aria-hidden="true" /> reset</IconBtn>
+              : <>
+                  <IconBtn
+                    onClick={handleSave}
+                    title="Save for this session (resets on reload)"
+                    success={saved}
+                    active={!saved && !isSavedDirty}
+                  >
+                    {saved
+                      ? <><Check size={11} aria-hidden="true" /> saved!</>
+                      : <><FloppyDisk size={11} aria-hidden="true" /> save</>
+                    }
+                  </IconBtn>
+                  <IconBtn onClick={handleReset} title="Restore original code"><ArrowCounterClockwise size={11} aria-hidden="true" /> reset</IconBtn>
+                </>
             }
             {hasErrors && !running && (
               <IconBtn onClick={() => setTermOpen(o => !o)} title="Toggle terminal" active={termOpen} danger={!termOpen}>
