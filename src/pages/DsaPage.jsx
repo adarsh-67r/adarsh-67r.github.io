@@ -5,7 +5,7 @@ import {
   Copy, Check, Code, TreeStructure, X,
   MagnifyingGlass, PencilSimple, ArrowCounterClockwise,
   Play, SpinnerGap, Terminal, ArrowSquareIn, WarningCircle,
-  FloppyDisk, ChartBar,
+  FloppyDisk,
 } from '@phosphor-icons/react'
 
 const REPO   = 'adarsh-67r/a2z-dsa'
@@ -26,15 +26,6 @@ const FONT_SIZES = [
   { label: 'A',  value: '0.875rem', title: 'Medium (default)' },
   { label: 'A+', value: '1rem',     title: 'Large' },
 ]
-
-// ── CP Stats usernames ───────────────────────────────────────────────────────────────────────────
-const CP_HANDLES = {
-  leetcode:   'adarsh-67',
-  codeforces: 'adarsh67',
-  gfg:        'adarsh67',
-  codechef:   'adarsh67r',
-  atcoder:    'adarsh67',
-}
 
 // ── Shiki highlighter singleton ─────────────────────────────────────────────────────────────────
 let shikiHighlighterPromise = null
@@ -92,257 +83,6 @@ function prettyName(raw) {
     .replace(/_/g, ' ')
     .replace(/\.cpp$/, '')
     .trim()
-}
-
-// ── CP Stats fetchers ────────────────────────────────────────────────────────────────────────────
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), ms)
-    ),
-  ])
-}
-
-async function fetchLeetCode(handle) {
-  // alfa-leetcode-api — actively maintained CORS-open proxy
-  const r = await withTimeout(
-    fetch(`https://alfa-leetcode-api.onrender.com/${handle}`),
-    10000
-  )
-  if (!r.ok) throw new Error('lc')
-  const d = await r.json()
-  if (d.errors || (!d.totalSolved && d.totalSolved !== 0)) throw new Error('lc')
-  return {
-    platform: 'LeetCode',
-    color: '#ffa116',
-    url: `https://leetcode.com/u/${handle}`,
-    solved: d.totalSolved ?? '—',
-    extra: `Easy ${d.easySolved ?? '?'} · Med ${d.mediumSolved ?? '?'} · Hard ${d.hardSolved ?? '?'}`,
-  }
-}
-
-async function fetchCodeforces(handle) {
-  // Official Codeforces REST API — no auth, no CORS issues
-  const r = await withTimeout(
-    fetch(`https://codeforces.com/api/user.info?handles=${handle}`),
-    8000
-  )
-  if (!r.ok) throw new Error('cf')
-  const d = await r.json()
-  if (d.status !== 'OK') throw new Error('cf')
-  const u = d.result?.[0]
-  return {
-    platform: 'Codeforces',
-    color: '#1f8acb',
-    url: `https://codeforces.com/profile/${handle}`,
-    solved: u?.rating ?? '—',
-    label: 'Rating',
-    extra: u?.rank ?? '',
-  }
-}
-
-async function fetchGFG(handle) {
-  // geeks-for-geeks-api by JhaAman — CORS-open, actively maintained
-  const r = await withTimeout(
-    fetch(`https://geeks-for-geeks-api.vercel.app/${handle}`),
-    9000
-  )
-  if (!r.ok) throw new Error('gfg')
-  const d = await r.json()
-  if (d.error) throw new Error('gfg')
-  const info = d.info ?? {}
-  const solved = info.totalProblemsSolved ?? info.totalProblemsCount ?? '—'
-  const score  = info.codingScore ?? info.score ?? '?'
-  return {
-    platform: 'GeeksForGeeks',
-    color: '#2f8d46',
-    url: `https://www.geeksforgeeks.org/user/${handle}`,
-    solved,
-    extra: `Score ${score}`,
-  }
-}
-
-async function fetchCodeChef(handle) {
-  // codechef-api by bhavy1910 — CORS-open proxy
-  const r = await withTimeout(
-    fetch(`https://codechef-api.vercel.app/handle/${handle}`),
-    9000
-  )
-  if (!r.ok) throw new Error('cc')
-  const d = await r.json()
-  if (d.success === false) throw new Error('cc')
-  return {
-    platform: 'CodeChef',
-    color: '#b45309',
-    url: `https://www.codechef.com/users/${handle}`,
-    solved: d.currentRating ?? d.rating ?? '—',
-    label: 'Rating',
-    extra: d.highestRating ? `Best ${d.highestRating}` : (d.stars ?? ''),
-  }
-}
-
-async function fetchAtCoder(handle) {
-  // kenkoooo AtCoder Problems API — CORS-open, no auth needed
-  // ac_rank gives count of unique AC problems
-  const r = await withTimeout(
-    fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user=${handle}`),
-    9000
-  )
-  if (!r.ok) throw new Error('ac')
-  const d = await r.json()
-  // count = number of unique problems solved
-  const solved = d.count ?? '—'
-  // fetch rating separately from contest history
-  let rating = '—'
-  try {
-    const rh = await withTimeout(
-      fetch(`https://atcoder.jp/users/${handle}/history/json`),
-      6000
-    )
-    if (rh.ok) {
-      const history = await rh.json()
-      if (Array.isArray(history) && history.length > 0) {
-        rating = history[history.length - 1].NewRating ?? '—'
-      }
-    }
-  } catch (_) { /* rating stays '—' */ }
-  return {
-    platform: 'AtCoder',
-    color: '#888',
-    url: `https://atcoder.jp/users/${handle}`,
-    solved,
-    label: 'ACs',
-    extra: rating !== '—' ? `Rating ${rating}` : '',
-  }
-}
-
-// ── CP Stats Panel ───────────────────────────────────────────────────────────────────────────────
-// Rendered as a portal-like fixed element to avoid z-index clipping from topBar
-function CpStatsPanel({ open, onClose, anchorRef }) {
-  const [stats, setStats] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [pos, setPos] = useState({ top: 0, right: 0 })
-
-  // Calculate position from the anchor button
-  useEffect(() => {
-    if (!open || !anchorRef?.current) return
-    const rect = anchorRef.current.getBoundingClientRect()
-    setPos({
-      top: rect.bottom + 6,
-      right: window.innerWidth - rect.right,
-    })
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    setLoading(true)
-    setStats({})
-    const fetchers = [
-      ['leetcode',   fetchLeetCode(CP_HANDLES.leetcode)],
-      ['codeforces', fetchCodeforces(CP_HANDLES.codeforces)],
-      ['gfg',        fetchGFG(CP_HANDLES.gfg)],
-      ['codechef',   fetchCodeChef(CP_HANDLES.codechef)],
-      ['atcoder',    fetchAtCoder(CP_HANDLES.atcoder)],
-    ]
-    let done = 0
-    fetchers.forEach(([key, promise]) => {
-      promise
-        .then(data => setStats(s => ({ ...s, [key]: { ok: true, ...data } })))
-        .catch(() => setStats(s => ({ ...s, [key]: { ok: false, platform: key } })))
-        .finally(() => { done++; if (done === fetchers.length) setLoading(false) })
-    })
-  }, [open])
-
-  const platforms = [
-    { key: 'leetcode',   label: 'LeetCode',      color: '#ffa116', url: `https://leetcode.com/u/${CP_HANDLES.leetcode}` },
-    { key: 'codeforces', label: 'Codeforces',    color: '#1f8acb', url: `https://codeforces.com/profile/${CP_HANDLES.codeforces}` },
-    { key: 'gfg',        label: 'GeeksForGeeks', color: '#2f8d46', url: `https://geeksforgeeks.org/user/${CP_HANDLES.gfg}` },
-    { key: 'codechef',   label: 'CodeChef',      color: '#b45309', url: `https://codechef.com/users/${CP_HANDLES.codechef}` },
-    { key: 'atcoder',    label: 'AtCoder',       color: '#888',    url: `https://atcoder.jp/users/${CP_HANDLES.atcoder}` },
-  ]
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* backdrop to close on outside click */}
-          <div
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-            aria-hidden="true"
-          />
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            style={{
-              position: 'fixed',
-              top: `${pos.top}px`,
-              right: `${pos.right}px`,
-              zIndex: 999,
-              width: '320px',
-              background: 'color-mix(in srgb, var(--surface) 96%, transparent)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              boxShadow: '0 8px 32px color-mix(in srgb, #000 28%, transparent)',
-              backdropFilter: 'var(--glass-blur)',
-              WebkitBackdropFilter: 'var(--glass-blur)',
-              overflow: 'hidden',
-            }}
-          >
-            {/* header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-              <ChartBar size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', flex: 1 }}>cp stats</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', opacity: 0.6 }}>live · today</span>
-              <button onClick={onClose} aria-label="Close stats" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: '2px' }}>
-                <X size={12} aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* cards */}
-            <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {platforms.map(({ key, label, color, url }) => {
-                const s = stats[key]
-                return (
-                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '8px 10px', borderRadius: '7px',
-                      background: 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)',
-                      border: '1px solid var(--border)',
-                      textDecoration: 'none', transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, var(--surface))`}
-                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-offset, var(--surface)) 80%, transparent)'}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text)', flex: 1, fontWeight: 500 }}>{label}</span>
-                    {!s && loading && (
-                      <span style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', display: 'inline-block' }} />
-                    )}
-                    {s?.ok === false && (
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--muted)', opacity: 0.55 }}>unavailable</span>
-                    )}
-                    {s?.ok && (
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color }}>{s.solved}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', marginLeft: '4px' }}>{s.label ?? 'solved'}</span>
-                        {s.extra && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--muted)', opacity: 0.7 }}>{s.extra}</div>}
-                      </div>
-                    )}
-                    <span style={{ fontSize: '0.6rem', color: 'var(--muted)', opacity: 0.45 }}>↗</span>
-                  </a>
-                )
-              })}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
 }
 
 // ── icon button ──────────────────────────────────────────────────────────────────────────────────
@@ -850,8 +590,6 @@ export default function DsaPage() {
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [fontSize, setFontSize]       = useState('0.875rem')
-  const [statsOpen, setStatsOpen]     = useState(false)
-  const statsButtonRef                = useRef(null)
 
   const [trees, setTrees]       = useState(() => Object.fromEntries(TOPICS.map(t => [t.name, null])))
   const [allFiles, setAllFiles] = useState([])
@@ -893,7 +631,6 @@ export default function DsaPage() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(o => !o) }
       if (e.key === 'Escape') {
         setSearchOpen(false); setSearchQuery('')
-        setStatsOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -973,27 +710,6 @@ export default function DsaPage() {
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)' }}>dsa</span>
       <div style={{ flex: 1 }} />
 
-      {/* CP Stats button — panel rendered at root level via fixed positioning */}
-      <button
-        ref={statsButtonRef}
-        onClick={() => setStatsOpen(o => !o)}
-        title="CP stats"
-        aria-label="Toggle CP stats"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '5px',
-          padding: '3px 10px', height: '26px', borderRadius: '6px',
-          background: statsOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
-          border: '1px solid',
-          borderColor: statsOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)',
-          color: statsOpen ? 'var(--accent)' : 'var(--muted)',
-          fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-          cursor: 'pointer', transition: 'all 0.18s',
-        }}
-      >
-        <ChartBar size={11} aria-hidden="true" />
-        stats
-      </button>
-
       <button onClick={() => setSearchOpen(o => !o)} title="Search files (Ctrl+K)" aria-label="Search files"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', height: '26px', borderRadius: '6px', background: searchOpen ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', border: '1px solid', borderColor: searchOpen ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--border)', color: searchOpen ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', cursor: 'pointer', transition: 'all 0.18s' }}>
         <MagnifyingGlass size={11} aria-hidden="true" />
@@ -1039,8 +755,6 @@ export default function DsaPage() {
     <div style={{ height: '100dvh', paddingTop: '56px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{shikiCss}</style>
       {topBar}
-      {/* Stats panel rendered here — outside topBar — using fixed positioning so it floats above all content */}
-      <CpStatsPanel open={statsOpen} onClose={() => setStatsOpen(false)} anchorRef={statsButtonRef} />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         <AnimatePresence initial={false}>
           {sidebarOpen && (
