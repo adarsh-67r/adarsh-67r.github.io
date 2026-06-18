@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: 'home',     to: '/' },
   { label: 'projects', to: '/projects' },
   { label: 'posts',    to: '/posts' },
+  { label: 'dsa',      to: '/dsa' },
   { label: 'contact',  to: '/contact' },
 ]
 
@@ -86,6 +87,7 @@ export default function Navbar() {
 
   const isActive = (to) => {
     if (to === '/posts') return location.pathname.startsWith('/posts')
+    if (to === '/dsa')   return location.pathname.startsWith('/dsa')
     return location.pathname === to
   }
 
