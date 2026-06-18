@@ -105,17 +105,19 @@ function withTimeout(promise, ms) {
 }
 
 async function fetchLeetCode(handle) {
+  // leetcode-stats-api — CORS-open proxy
   const r = await withTimeout(
-    fetch(`https://alfa-leetcode-api.0x0.workers.dev/${handle}/solved`),
+    fetch(`https://leetcode-stats-api.herokuapp.com/${handle}`),
     8000
   )
   if (!r.ok) throw new Error('lc')
   const d = await r.json()
+  if (d.status === 'error') throw new Error('lc')
   return {
     platform: 'LeetCode',
     color: '#ffa116',
     url: `https://leetcode.com/u/${handle}`,
-    solved: d.solvedProblem ?? d.totalSolved ?? '—',
+    solved: d.totalSolved ?? '—',
     extra: `Easy ${d.easySolved ?? '?'} · Med ${d.mediumSolved ?? '?'} · Hard ${d.hardSolved ?? '?'}`,
   }
 }
@@ -146,7 +148,6 @@ async function fetchGFG(handle) {
   )
   if (!r.ok) throw new Error('gfg')
   const d = await r.json()
-  // handle both snake_case and camelCase shapes
   const solved = d.totalProblemsSolved ?? d.total_problems_solved
     ?? d.solvedProblems ?? d.solved ?? '—'
   const score  = d.codingScore ?? d.coding_score ?? '?'
@@ -160,19 +161,21 @@ async function fetchGFG(handle) {
 }
 
 async function fetchCodeChef(handle) {
+  // unofficial-codechef-api — CORS-open
   const r = await withTimeout(
-    fetch(`https://codechef-api.vercel.app/${handle}`),
+    fetch(`https://codechef-api.vercel.app/handle/${handle}`),
     8000
   )
   if (!r.ok) throw new Error('cc')
   const d = await r.json()
+  if (d.success === false) throw new Error('cc')
   return {
     platform: 'CodeChef',
     color: '#b45309',
     url: `https://www.codechef.com/users/${handle}`,
-    solved: d.currentRating ?? '—',
+    solved: d.currentRating ?? d.rating ?? '—',
     label: 'Rating',
-    extra: d.stars ?? '',
+    extra: d.stars ?? d.highestRating ? `Best ${d.highestRating}` : '',
   }
 }
 
@@ -184,19 +187,13 @@ async function fetchAtCoder(handle) {
   )
   if (!r.ok) throw new Error('ac')
   const d = await r.json()
-  // Fetch rating separately from the info endpoint
-  const r2 = await withTimeout(
-    fetch(`https://atcoder-api.vercel.app/users/${handle}`),
-    8000
-  ).catch(() => null)
-  const info = r2?.ok ? await r2.json().catch(() => null) : null
   return {
     platform: 'AtCoder',
     color: '#888',
     url: `https://atcoder.jp/users/${handle}`,
     solved: d.count ?? '—',
     label: 'ACs',
-    extra: info?.rating ? `Rating ${info.rating}` : '',
+    extra: '',
   }
 }
 
@@ -565,7 +562,6 @@ function ShikiCode({ code, fontSize }) {
     getHighlighter()
       .then(hl => {
         if (cancelled) return
-        // Works identically in shiki v1, v2, v3, v4
         const result = hl.codeToHtml(code, {
           lang: 'cpp',
           themes: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
@@ -579,7 +575,6 @@ function ShikiCode({ code, fontSize }) {
     return () => { cancelled = true }
   }, [code])
 
-  // Plain fallback while loading or if shiki fails
   if (!html || failed) return (
     <pre style={{
       background: 'var(--surface)', padding: '1.25rem 1.5rem',
@@ -701,7 +696,6 @@ function CodePanel({ file, onMobileClose, fontSize, setFontSize }) {
         time:           run.time,
       }
       setRunResult(result)
-      // open terminal only if there are errors
       if (result.stderr || result.compile_output) setTermOpen(true)
     } catch (err) {
       const msg = err.message === 'timeout'
@@ -933,10 +927,6 @@ export default function DsaPage() {
       </button>
       <Code size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden="true" />
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)' }}>dsa</span>
-      <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>/</span>
-      <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-        {treeLoading ? 'loading…' : `${TOPICS.length} topics · ${allFiles.length} problems · C++`}
-      </span>
       <div style={{ flex: 1 }} />
 
       {/* CP Stats button + dropdown */}
