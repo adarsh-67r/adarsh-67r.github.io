@@ -14,6 +14,8 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const PostsPage    = lazy(() => import('./pages/PostsPage'))
 const PostPage     = lazy(() => import('./pages/PostPage'))
 const ContactPage  = lazy(() => import('./pages/ContactPage'))
+const DsaPage      = lazy(() => import('./pages/DsaPage'))
+const DsaFilePage  = lazy(() => import('./pages/DsaFilePage'))
 const NotFound     = lazy(() => import('./pages/NotFound'))
 
 function ScrollToTop() {
@@ -66,12 +68,14 @@ export default function App() {
               <Suspense fallback={<PageLoader />}>
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
-                    <Route path="/"            element={<PageWrapper><Home /></PageWrapper>} />
-                    <Route path="/projects"    element={<PageWrapper><ProjectsPage /></PageWrapper>} />
-                    <Route path="/posts"       element={<PageWrapper><PostsPage /></PageWrapper>} />
-                    <Route path="/posts/:slug" element={<PageWrapper><PostPage /></PageWrapper>} />
-                    <Route path="/contact"     element={<PageWrapper><ContactPage /></PageWrapper>} />
-                    <Route path="*"            element={<PageWrapper><NotFound /></PageWrapper>} />
+                    <Route path="/"              element={<PageWrapper><Home /></PageWrapper>} />
+                    <Route path="/projects"      element={<PageWrapper><ProjectsPage /></PageWrapper>} />
+                    <Route path="/posts"         element={<PageWrapper><PostsPage /></PageWrapper>} />
+                    <Route path="/posts/:slug"   element={<PageWrapper><PostPage /></PageWrapper>} />
+                    <Route path="/dsa"           element={<PageWrapper><DsaPage /></PageWrapper>} />
+                    <Route path="/dsa/:topic/:file" element={<PageWrapper><DsaFilePage /></PageWrapper>} />
+                    <Route path="/contact"       element={<PageWrapper><ContactPage /></PageWrapper>} />
+                    <Route path="*"              element={<PageWrapper><NotFound /></PageWrapper>} />
                   </Routes>
                 </AnimatePresence>
               </Suspense>
