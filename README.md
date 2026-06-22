@@ -16,7 +16,7 @@
 ## Features
 
 - **Multi-theme system** — 20+ hand-crafted color themes, searchable with keyboard shortcut `T`
-- **Music player** — ambient background music with a navbar pill (desktop) and circular FAB (mobile)
+- **Music player** — ambient background music with a navbar pill
 - **Blog** — markdown posts with syntax highlighting, reading time, and per-post SEO
 - **Framer Motion** — page transitions, hero entrance, and scroll-based reveals
 - **Cursor glow** — radial gradient spotlight that follows the mouse
