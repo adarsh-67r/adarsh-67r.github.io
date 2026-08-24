@@ -8,9 +8,17 @@ export const manualProjects = [
     github: 'https://github.com/adarsh-67r/adarsh-67r.github.io',
     live: 'https://adarsh-67r.github.io',
   },
+  {
+    id: 2,
+    name: 'RouteMind',
+    description: 'AI model routing platform that analyzes user intent and dispatches requests to the best-suited model — GPT, Claude, Gemini, and more — for the right balance of quality, speed, and cost.',
+    tags: ['React', 'FastAPI', 'Supabase', 'Tailwind'],
+    github: 'https://github.com/adarsh-67r/RouteMind',
+    live: 'https://routemind-ai-app.vercel.app',
+  },
   // TODO: Add more featured projects here
   // {
-  //   id: 2,
+  //   id: 3,
   //   name: 'Project Name',
   //   description: 'What it does.',
   //   tags: ['Tech', 'Stack'],
