@@ -21,9 +21,9 @@ export interface LogoDef {
 
 const aar: LogoDef = {
   name: "aar",
-  brickWidth: 40,
-  rowScale: 2,
-  colOffset: 3,
+  brickWidth: 50,
+  rowScale: 3,
+  colOffset: 1,
   rowOffset: 1,
   pattern: [
     ".XX...XX..XXX.",
