@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { Separator } from "@/components/base/ui/separator"
-import { DmcaIcon, GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons"
+import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons"
 import { SiteFooterInteractiveLogotype } from "@/components/site-footer-brand"
 import { SOCIAL } from "@/features/portfolio/data/social-links"
 import { AdarshMark } from "./adarsh-mark"
@@ -69,23 +69,7 @@ export function SiteFooterCad() {
             <LinkedInIcon className="size-4" />
           </a>
 
-          <Separator
-            orientation="vertical"
-            className="data-vertical:h-4 data-vertical:self-center"
-          />
 
-          <a
-            className="flex items-center transition-[color] hover:text-foreground"
-            href={
-              process.env.NEXT_PUBLIC_DMCA_URL ||
-              "https://www.dmca.com/ProtectionPro.aspx"
-            }
-            target="_blank"
-            rel="noopener"
-            aria-label="DMCA.com Protection Status"
-          >
-            <DmcaIcon className="h-4 w-auto" />
-          </a>
         </div>
       </div>
 
