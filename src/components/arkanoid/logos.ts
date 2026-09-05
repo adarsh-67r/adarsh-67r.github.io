@@ -19,13 +19,18 @@ export interface LogoDef {
   rowOffset?: number
 }
 
-const adarsh: LogoDef = {
-  name: "adarsh",
-  brickWidth: 80,
-  rowScale: 3,
-  colOffset: 1,
-  rowOffset: 0,
-  pattern: [".XX.XXX.", "X...X..X", "X...X..X", ".XX.XXX."],
+const aar: LogoDef = {
+  name: "aar",
+  brickWidth: 40,
+  rowScale: 2,
+  colOffset: 3,
+  rowOffset: 1,
+  pattern: [
+    ".XX...XX..XXX.",
+    "X..X.X..X.X..X",
+    "XXXX.XXXX.XXX.",
+    "X..X.X..X.X..X",
+  ],
 }
 
 const eve: LogoDef = {
@@ -66,12 +71,14 @@ const vercel: LogoDef = {
   ],
 }
 
-export const LOGOS: LogoDef[] = [adarsh, eve, vercel]
+export const LOGOS: LogoDef[] = [aar, eve, vercel]
 
 export function getLogoIndex(name?: string | null): number {
   if (!name) return 0
+  const normalized = name.toLowerCase()
+  if (normalized === "adarsh") return 0
   const index = LOGOS.findIndex(
-    (logo) => logo.name.toLowerCase() === name.toLowerCase()
+    (logo) => logo.name.toLowerCase() === normalized
   )
   return index === -1 ? 0 : index
 }
