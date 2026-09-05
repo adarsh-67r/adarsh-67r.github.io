@@ -61,7 +61,6 @@ export function Arkanoid({
       paddleImage: null,
     }
 
-    let font: p5.Font
     let sketch: p5
     let paddle: Paddle
     let ball: Ball
@@ -71,8 +70,6 @@ export function Arkanoid({
       sketch = p
 
       p.preload = () => {
-        font = p.loadFont(FONT_URL)
-
         state.soundBounce = p.createAudio(SOUND_BOUNCE_URL)
         state.soundBreak = p.createAudio(SOUND_BREAK_URL)
         state.soundGameOver = p.createAudio(SOUND_GAME_OVER_URL)
@@ -92,7 +89,7 @@ export function Arkanoid({
         ui = new UI(p, state)
 
         p.imageMode(p.CENTER)
-        p.textFont(font)
+        p.textFont("var(--font-pixel), monospace")
         p.background(Colors.background)
         p.fill(Colors.foreground)
         p.noStroke()

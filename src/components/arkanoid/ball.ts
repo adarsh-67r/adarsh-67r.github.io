@@ -1,6 +1,7 @@
 import type p5 from "p5"
 
 import type { Brick } from "./brick"
+import { Colors } from "./colors"
 import { BALL_SIZE, BALL_SPEED, BRICK_SCORE, uncheckedClamp } from "./constants"
 import type { GameState } from "./types"
 
@@ -24,8 +25,14 @@ export class Ball {
   }
 
   show() {
-    this.p.imageMode(this.p.CENTER)
-    this.p.image(this.state.ballImage!, this.x, this.y, BALL_SIZE, BALL_SIZE)
+    if (this.state.ballImage && (this.state.ballImage as any).width > 0) {
+      this.p.imageMode(this.p.CENTER)
+      this.p.image(this.state.ballImage, this.x, this.y, BALL_SIZE, BALL_SIZE)
+    } else {
+      this.p.fill(Colors.foreground)
+      this.p.noStroke()
+      this.p.circle(this.x, this.y, BALL_SIZE)
+    }
   }
 
   move() {
@@ -117,7 +124,8 @@ export class Ball {
   }
 }
 
-function playSound(sound: p5.MediaElement) {
+function playSound(sound?: p5.MediaElement | null) {
+  if (!sound || !sound.elt) return
   const el = sound.elt as HTMLAudioElement
   el.currentTime = 0
   el.volume = 0.3
