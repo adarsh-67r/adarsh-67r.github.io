@@ -1,6 +1,6 @@
 import { LICENSE, SOURCE_CODE_GITHUB_URL } from "@/config/site"
 import { cn } from "@/lib/utils"
-import { DmcaIcon, GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons"
+import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons"
 import { SiteFooterInteractiveLogotype } from "@/components/site-footer-brand"
 import { SOCIAL } from "@/features/portfolio/data/social-links"
 
@@ -117,20 +117,7 @@ export function SiteFooter() {
               <LinkedInIcon className="size-4" />
             </a>
 
-            <Separator />
 
-            <a
-              className="flex text-muted-foreground transition-[color] hover:text-foreground"
-              href={
-                process.env.NEXT_PUBLIC_DMCA_URL ||
-                "https://www.dmca.com/ProtectionPro.aspx"
-              }
-              target="_blank"
-              rel="noopener"
-              aria-label="DMCA.com Protection Status"
-            >
-              <DmcaIcon className="h-4.5 w-auto" />
-            </a>
           </div>
         </div>
 
