@@ -1,0 +1,43 @@
+{
+  "short_name": "Adarsh",
+  "name": "Adarsh",
+  "description": "Student. Open source. Building things.",
+  "icons": [
+    {
+      "src": "https://github.com/adarsh-67r.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "https://assets.adarsh-67r.github.io/images/screenshot-mobile-dark.webp?t=1778602757",
+      "type": "image/webp",
+      "sizes": "440x956",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "https://assets.adarsh-67r.github.io/images/screenshot-mobile-light.webp?t=1778602757",
+      "type": "image/webp",
+      "sizes": "440x956",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "https://assets.adarsh-67r.github.io/images/screenshot-desktop-dark.webp?t=1778602757",
+      "type": "image/webp",
+      "sizes": "1512x982",
+      "form_factor": "wide"
+    },
+    {
+      "src": "https://assets.adarsh-67r.github.io/images/screenshot-desktop-light.webp?t=1778602757",
+      "type": "image/webp",
+      "sizes": "1512x982",
+      "form_factor": "wide"
+    }
+  ]
+}
