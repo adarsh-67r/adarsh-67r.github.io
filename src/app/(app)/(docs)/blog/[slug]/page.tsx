@@ -17,7 +17,6 @@ import {
   TooltipTrigger,
 } from "@/components/base/ui/tooltip"
 import { Prose } from "@/components/base/ui/typography"
-import { CarbonAds } from "@/components/carbon-ads"
 import { MDX } from "@/components/mdx"
 import { TOCInline } from "@/components/toc-inline"
 import { TOCMinimap } from "@/components/toc-minimap"
@@ -271,8 +270,6 @@ export default async function Page({ params }: PageProps<"/blog/[slug]">) {
               <p className="text-muted-foreground">
                 {doc.metadata.description}
               </p>
-
-              <CarbonAds className="not-prose my-[1.25em] flex justify-center" />
 
               <TOCInline className="lg:hidden" items={toc} />
 
