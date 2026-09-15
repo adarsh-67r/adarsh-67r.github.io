@@ -8,6 +8,12 @@ const ScrollToTop = dynamic(() =>
   import("@/components/scroll-to-top").then((mod) => mod.ScrollToTop)
 )
 
+const ClawdFollower = dynamic(() =>
+  import("@/components/clawd-follower/clawd-follower").then(
+    (mod) => mod.ClawdFollower
+  )
+)
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     // References:
@@ -26,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       <SiteBottomNav />
       <ScrollToTop />
+      <ClawdFollower />
     </div>
   )
 }
