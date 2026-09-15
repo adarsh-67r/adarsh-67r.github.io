@@ -166,6 +166,7 @@ export default function ClawdFollowerCore() {
   // independence: nag meter fills on frantic chasing, solo mode ignores cursor
   const nag = useRef(0)
   const soloUntil = useRef(0)
+  const tapStart = useRef({ x: 0, y: 0, t: 0 })
 
   useEffect(() => {
     ALL.forEach((f) => {
@@ -197,13 +198,14 @@ export default function ClawdFollowerCore() {
       randomStroll()
     }
 
-    const onMove = (e: MouseEvent) => {
+    // shared steering for mouse + touch
+    const pointTo = (clientX: number, clientY: number) => {
       lastMove.current = Date.now()
       // solo mode: he ignores you for a while
       if (Date.now() < soloUntil.current) return
       const next = {
-        x: clamp(e.clientX - CURSOR_OFFSET.x, window.innerWidth - SIZE),
-        y: clamp(e.clientY - CURSOR_OFFSET.y, window.innerHeight - SIZE),
+        x: clamp(clientX - CURSOR_OFFSET.x, window.innerWidth - SIZE),
+        y: clamp(clientY - CURSOR_OFFSET.y, window.innerHeight - SIZE),
       }
       // dead-zone: ignore tiny jitters while stopped (duck uses 50px)
       if (!movingRef.current) {
@@ -217,6 +219,31 @@ export default function ClawdFollowerCore() {
         nag.current += 2
         // ~4-5s of frantic chasing before he rebels (was unreachable at +1/0.985)
         if (nag.current > 250) startSolo(10000)
+      }
+    }
+
+    const onMove = (e: MouseEvent) => {
+      pointTo(e.clientX, e.clientY)
+    }
+    // touch: finger drags steer him, quick taps celebrate (click also fires)
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      tapStart.current = { x: t.clientX, y: t.clientY, t: Date.now() }
+      pointTo(t.clientX, t.clientY)
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0]
+      pointTo(t.clientX, t.clientY)
+    }
+    const onTouchEnd = (e: TouchEvent) => {
+      const s = tapStart.current
+      const c = e.changedTouches[0]
+      lastMove.current = Date.now()
+      if (
+        Date.now() - s.t < 300 &&
+        Math.hypot(c.clientX - s.x, c.clientY - s.y) < 12
+      ) {
+        happyUntil.current = Date.now() + HAPPY_MS
       }
     }
     const onClick = () => {
@@ -247,6 +274,9 @@ export default function ClawdFollowerCore() {
       cheeseUntil.current = Date.now() + CHEESE_MS
     }
     window.addEventListener("mousemove", onMove, { passive: true })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: true })
+    window.addEventListener("touchend", onTouchEnd, { passive: true })
     window.addEventListener("click", onClick, { passive: true })
     window.addEventListener("dblclick", onDblClick, { passive: true })
     window.addEventListener("keydown", onKey, { passive: true })
@@ -395,10 +425,25 @@ export default function ClawdFollowerCore() {
     }
     raf = requestAnimationFrame(tick)
 
+    // battery: freeze the loop in background tabs
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf)
+        raf = 0
+      } else if (!raf) {
+        lastMove.current = Date.now()
+        raf = requestAnimationFrame(tick)
+      }
+    }
+    document.addEventListener("visibilitychange", onVis)
+
     return () => {
       batteryStop = true
       cancelAnimationFrame(raf)
       window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("touchstart", onTouchStart)
+      window.removeEventListener("touchmove", onTouchMove)
+      window.removeEventListener("touchend", onTouchEnd)
       window.removeEventListener("click", onClick)
       window.removeEventListener("dblclick", onDblClick)
       window.removeEventListener("keydown", onKey)
@@ -406,6 +451,7 @@ export default function ClawdFollowerCore() {
       window.removeEventListener("paste", onPaste)
       document.removeEventListener("play", onPlay, true)
       window.removeEventListener("beforeprint", onPrint)
+      document.removeEventListener("visibilitychange", onVis)
       window.clearTimeout(idleTimer)
       window.clearTimeout(coffeeFirst)
       window.clearInterval(coffeeTimer)
