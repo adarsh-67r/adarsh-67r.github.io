@@ -6,6 +6,7 @@ import { Separator } from "@/components/base/ui/separator"
 import { AdarshMark } from "@/components/adarsh-mark"
 import { NavDesktop } from "@/components/nav-desktop"
 import { NavItemGitHub } from "@/components/nav-item-github"
+import { PetToggle } from "@/components/pet-toggle"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 
@@ -64,6 +65,7 @@ export function SiteHeader() {
             className="mx-2 data-vertical:h-5 data-vertical:self-center"
           />
           <ThemeToggle />
+          <PetToggle />
         </div>
 
         {/* <div className="absolute top-[-3.5px] left-[-4.5px] z-2 flex size-2 border border-line bg-background" /> */}
