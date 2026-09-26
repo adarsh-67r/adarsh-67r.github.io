@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 
 const SIZE = 64
-const SPEED = 1.1 // slow stroll — desktop walks ~1.5px/16ms, no rush to catch cursor
+const SPEED = 1.3 // slow stroll — desktop walks ~1.5px/16ms, no rush to catch cursor
 const CURSOR_OFFSET = { x: -12, y: 40 }
 
 // desktop idle brain, verbatim: renderer.js IDLE_PHASES + IDLE_DURATIONS
