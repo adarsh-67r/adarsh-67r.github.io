@@ -31,7 +31,7 @@ function HandwrittenArrow({
       {...props}
     >
       <path d="M34 4c1 15-5 26-21 30" />
-      <path d="m21 36-8-2 7-7" />
+      <path d="m22 37-9-3 7.5-8" />
     </svg>
   )
 }
