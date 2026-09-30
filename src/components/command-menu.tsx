@@ -28,7 +28,6 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useHotkeys } from "react-hotkeys-hook"
-import { toast } from "sonner"
 
 import { trackEvent } from "@/lib/events"
 import { useClickSound } from "@/hooks/soundcn/use-click-sound"
@@ -42,6 +41,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command"
+import { toast } from "@/components/ui/toast"
 import { ComponentIcon } from "@/features/doc/components/component-icon"
 import type { DocPreview } from "@/features/doc/types/document"
 import { SOCIAL_ICONS } from "@/features/portfolio/components/social-link-icons"
@@ -261,7 +261,7 @@ export function CommandMenu({
           text: text,
         },
       })
-      toast.success(message)
+      toast.add({ type: "success", title: message })
       tiksSuccess()
     },
     [tiksSuccess]

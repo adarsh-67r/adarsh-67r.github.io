@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { Separator } from "@/components/base/ui/separator"
+import { Separator } from "@/components/ui/separator"
 import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons"
 import { SiteFooterInteractiveLogotype } from "@/components/site-footer-brand"
 import { SOCIAL } from "@/features/portfolio/data/social-links"
