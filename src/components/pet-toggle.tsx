@@ -4,7 +4,7 @@ import { PawPrint } from "lucide-react"
 
 import { usePet } from "@/hooks/use-pet"
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "./base/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { Button } from "./ui/button"
 
 export function PetToggle() {

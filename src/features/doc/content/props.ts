@@ -1,8 +1,7 @@
 import type { ComponentProps } from "react"
 import type { motion } from "motion/react"
 
-import type { Button as UIButton } from "@/components/ui/button"
-import type { Button } from "@/components/base/ui/button"
+import type { Button } from "@/components/ui/button"
 import type { AppleHelloEffectEnglish } from "@/registry/components/apple-hello-effect/apple-hello-effect-english"
 import type { CopyButton } from "@/registry/components/copy-button"
 import type { GitHubContributions } from "@/registry/components/github-contributions"
@@ -100,5 +99,5 @@ export type TimescaleRootProps = Omit<
 
 export type StatusButtonProps = Omit<
   ComponentProps<typeof StatusButton>,
-  Exclude<keyof ComponentProps<typeof UIButton>, "onClick">
+  Exclude<keyof ComponentProps<typeof Button>, "onClick">
 >
