@@ -97,7 +97,7 @@ export function CertificationItem({
             <dt className="sr-only">Issued on</dt>
             <dd>
               <time dateTime={new Date(certification.issueDate).toISOString()}>
-                {format(new Date(certification.issueDate), "dd.MM.yyyy")}
+                {format(new Date(certification.issueDate), "d MMM yyyy")}
               </time>
             </dd>
           </div>
