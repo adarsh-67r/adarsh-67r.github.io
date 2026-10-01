@@ -79,8 +79,8 @@ export const metadata: Metadata = {
     images: [SITE_INFO.ogImage],
   },
   icons: {
-    icon: "https://github.com/adarsh-67r.png",
-    apple: "https://github.com/adarsh-67r.png",
+    icon: "/favicon.svg",
+    apple: "/images/apple-touch-icon.png",
   },
 }
 

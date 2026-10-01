@@ -4,7 +4,7 @@
   "description": "Student. Open source. Building things.",
   "icons": [
     {
-      "src": "https://github.com/adarsh-67r.png",
+      "src": "/images/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
