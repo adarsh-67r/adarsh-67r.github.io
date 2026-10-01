@@ -30,14 +30,14 @@ export const USER: User = {
 - Co-founder of [ARITHI](https://arithi.in). Linux enthusiast, math enjoyer, and occasional contributor to open source projects.
 - Previously: Linux Specialist at [Axyl OS](https://github.com/axyl-os), GirlScript Summer of Code contributor.
 `,
-  avatar: "https://github.com/adarsh-67r.png",
+  avatar: "https://adarsh-67r.github.io/images/avatar.jpg",
   avatarVariants: {
-    lightOff: "https://github.com/adarsh-67r.png",
-    lightOn: "https://github.com/adarsh-67r.png",
-    darkOff: "https://github.com/adarsh-67r.png",
-    darkOn: "https://github.com/adarsh-67r.png",
+    lightOff: "/images/avatar.jpg",
+    lightOn: "/images/avatar.jpg",
+    darkOff: "/images/avatar.jpg",
+    darkOn: "/images/avatar.jpg",
   },
-  ogImage: "https://github.com/adarsh-67r.png",
+  ogImage: "https://adarsh-67r.github.io/images/avatar.jpg",
   namePronunciationUrl: "",
   timeZone: "Asia/Kolkata",
   keywords: [
