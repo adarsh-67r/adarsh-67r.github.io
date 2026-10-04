@@ -5,12 +5,11 @@ import { copyToClipboardWithEvent } from "@/utils/copy"
 import { useRouter } from "@bprogress/next/app"
 import { useTiks } from "@rexa-developer/tiks/react"
 import {
+  AwardIcon,
   BookmarkIcon,
   BoxIcon,
   BriefcaseBusinessIcon,
-  CircleCheckBigIcon,
   CornerDownLeftIcon,
-  CrownIcon,
   DownloadIcon,
   FileTextIcon,
   GraduationCapIcon,
@@ -20,7 +19,6 @@ import {
   MoonStarIcon,
   QuoteIcon,
   RssIcon,
-  ScaleIcon,
   SquareDashedIcon,
   SunMediumIcon,
   TextInitialIcon,
@@ -45,6 +43,7 @@ import { toast } from "@/components/ui/toast"
 import { ComponentIcon } from "@/features/doc/components/component-icon"
 import type { DocPreview } from "@/features/doc/types/document"
 import { SOCIAL_ICONS } from "@/features/portfolio/components/social-link-icons"
+import { RECOGNITION } from "@/features/portfolio/data/recognition"
 import { SOCIAL_LINKS } from "@/features/portfolio/data/social-links"
 
 import { AdarshMark, getMarkSVG } from "./adarsh-mark"
@@ -133,24 +132,17 @@ const PORTFOLIO_LINKS: CommandLinkItem[] = [
     kind: "page",
     icon: <BoxIcon />,
   },
-  {
-    title: "Awards",
-    href: "/#awards",
-    kind: "page",
-    icon: <CrownIcon />,
-  },
-  {
-    title: "Certifications",
-    href: "/#certs",
-    kind: "page",
-    icon: <CircleCheckBigIcon />,
-  },
-  {
-    title: "Intellectual property",
-    href: "/#ip",
-    kind: "page",
-    icon: <ScaleIcon />,
-  },
+  // Hidden with the home page section until there's something to list.
+  ...(RECOGNITION.length > 0
+    ? [
+        {
+          title: "Recognition",
+          href: "/#recognition",
+          kind: "page",
+          icon: <AwardIcon />,
+        } satisfies CommandLinkItem,
+      ]
+    : []),
 ]
 
 const SOCIAL_LINK_ITEMS: CommandLinkItem[] = SOCIAL_LINKS.map((item) => ({
