@@ -31,12 +31,6 @@ export const USER: User = {
 - Previously: Linux Specialist at [Axyl OS](https://github.com/axyl-os), GirlScript Summer of Code contributor.
 `,
   avatar: "https://adarsh-67r.github.io/images/avatar.jpg",
-  avatarVariants: {
-    lightOff: "/images/avatar.jpg",
-    lightOn: "/images/avatar.jpg",
-    darkOff: "/images/avatar.jpg",
-    darkOn: "/images/avatar.jpg",
-  },
   ogImage: "https://adarsh-67r.github.io/images/avatar.jpg",
   namePronunciationUrl: "",
   timeZone: "Asia/Kolkata",
