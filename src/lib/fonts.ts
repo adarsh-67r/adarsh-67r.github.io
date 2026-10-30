@@ -14,7 +14,7 @@ const fontSerif = IBM_Plex_Serif({
 })
 
 const fontHandwritten = Caveat({
-  weight: ["400", "500"],
+  weight: "400",
   display: "swap",
   variable: "--font-handwritten",
 })
