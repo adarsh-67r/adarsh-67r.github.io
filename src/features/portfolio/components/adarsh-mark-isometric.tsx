@@ -21,6 +21,22 @@ const transition: Transition = {
   stiffness: 200,
 }
 
+// The right shape's top corner: its down-right edge runs at exactly 30°, the wedge above is empty.
+const ISOMETRIC_ANGLE = Math.PI / 6
+const ANGLE_RADIUS = 88
+const ANGLE_VERTEX = { x: 444.28, y: 37 }
+const ANGLE_START = { x: ANGLE_VERTEX.x + ANGLE_RADIUS, y: ANGLE_VERTEX.y }
+const ANGLE_END = {
+  x: ANGLE_VERTEX.x + ANGLE_RADIUS * Math.cos(ISOMETRIC_ANGLE),
+  y: ANGLE_VERTEX.y + ANGLE_RADIUS * Math.sin(ISOMETRIC_ANGLE),
+}
+const ANGLE_LABEL = {
+  x: ANGLE_VERTEX.x + (ANGLE_RADIUS + 18) * Math.cos(ISOMETRIC_ANGLE / 2),
+  y: ANGLE_VERTEX.y + (ANGLE_RADIUS + 18) * Math.sin(ISOMETRIC_ANGLE / 2),
+}
+// Tip at the origin, pointing left, so each use only translates and rotates.
+const ANGLE_ARROW = "M0 0 8-3v6Z"
+
 export function AdarshMarkIsometric() {
   const id = useId()
   const ids = {
@@ -553,6 +569,53 @@ export function AdarshMarkIsometric() {
 
       <use href={`#${ids.stroke}`} stroke="var(--stroke)" />
       <use href={`#${ids.stroke}`} stroke={`url(#${ids.radialGradient})`} />
+      {/* y follows the top face on press; the text is unreadable below sm. */}
+      <motion.g
+        className="pointer-events-none text-dimension max-sm:hidden"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinejoin="round"
+        variants={{
+          normal: {
+            y: 0,
+          },
+          pressed: {
+            y: 12,
+          },
+        }}
+        transition={transition}
+      >
+        {/* A reference line, not an extension line, so no gap at the vertex. */}
+        <path
+          d={`M${ANGLE_VERTEX.x} ${ANGLE_VERTEX.y}H${ANGLE_START.x + 12}`}
+        />
+        <path
+          d={`M${ANGLE_START.x} ${ANGLE_START.y}A${ANGLE_RADIUS} ${ANGLE_RADIUS} 0 0 1 ${ANGLE_END.x} ${ANGLE_END.y}`}
+        />
+        {/* Filled so the arc stops at each arrow's base. */}
+        <path
+          className="fill-background"
+          d={ANGLE_ARROW}
+          transform={`translate(${ANGLE_START.x} ${ANGLE_START.y}) rotate(90)`}
+        />
+        <path
+          className="fill-background"
+          d={ANGLE_ARROW}
+          transform={`translate(${ANGLE_END.x} ${ANGLE_END.y}) rotate(-60)`}
+        />
+        <text
+          className="fill-dimension-foreground font-mono"
+          x={ANGLE_LABEL.x}
+          y={ANGLE_LABEL.y}
+          stroke="none"
+          fontSize="12"
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          30°
+        </text>
+      </motion.g>
     </motion.svg>
   )
 }
