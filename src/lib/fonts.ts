@@ -1,17 +1,14 @@
-import { Caveat, IBM_Plex_Serif } from "next/font/google"
+import { Caveat } from "next/font/google"
 import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
+import { GeistSerif } from "geist/font/serif"
 
 import { cn } from "@/lib/utils"
 
 const fontSans = GeistSans
 const fontMono = GeistMono
 
-const fontSerif = IBM_Plex_Serif({
-  weight: ["400"],
-  display: "swap",
-  variable: "--font-serif",
-})
+const fontSerif = GeistSerif
 
 const fontHandwritten = Caveat({
   weight: "400",
@@ -35,5 +32,6 @@ export const fontVariables = cn(
   fontHandwritten.variable,
   fontPixel.variable,
   "[--font-sans:var(--font-geist-sans)]",
-  "[--font-mono:var(--font-geist-mono)]"
+  "[--font-mono:var(--font-geist-mono)]",
+  "[--font-serif:var(--font-geist-serif)]"
 )
