@@ -50,12 +50,6 @@ const legacyBlogComponentRedirects = LEGACY_BLOG_COMPONENT_SLUGS.map(
   })
 )
 
-const acceptsMarkdown = {
-  type: "header" as const,
-  key: "accept",
-  value: "(?<accept>.*text/markdown.*)",
-}
-
 const nextConfig: NextConfig = {
   output: "export",
   basePath: "",
@@ -173,7 +167,13 @@ const nextConfig: NextConfig = {
         {
           source: "/:section(blog|components)/:slug",
           destination: "/doc.md/:slug",
-          has: [acceptsMarkdown],
+          has: [
+            {
+              type: "header",
+              key: "accept",
+              value: "(?<accept>.*text/markdown.*)",
+            },
+          ],
         },
         {
           source: "/index.md",
@@ -182,7 +182,13 @@ const nextConfig: NextConfig = {
         {
           source: "/",
           destination: "/llms.txt",
-          has: [acceptsMarkdown],
+          has: [
+            {
+              type: "header",
+              key: "accept",
+              value: "(?<accept>.*text/markdown.*)",
+            },
+          ],
         },
       ],
       afterFiles: [
@@ -193,19 +199,6 @@ const nextConfig: NextConfig = {
         {
           source: "/registry/rss",
           destination: "/components/rss",
-        },
-      ],
-      // Agents get a Markdown 404 instead of the HTML page, for unknown
-      // .md doc URLs and for any missing path requested as Markdown.
-      fallback: [
-        {
-          source: "/doc.md/:slug",
-          destination: "/not-found.md",
-        },
-        {
-          source: "/:path*",
-          destination: "/not-found.md",
-          has: [acceptsMarkdown],
         },
       ],
     }
