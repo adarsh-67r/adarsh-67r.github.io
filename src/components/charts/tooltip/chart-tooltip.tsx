@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/refs */
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { motion, useSpring } from "motion/react"
 
 import { useIsClient } from "@/hooks/use-is-client"

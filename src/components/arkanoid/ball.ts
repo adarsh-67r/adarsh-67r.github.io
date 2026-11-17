@@ -25,7 +25,7 @@ export class Ball {
   }
 
   show() {
-    if (this.state.ballImage && (this.state.ballImage as any).width > 0) {
+    if (this.state.ballImage && this.state.ballImage.width > 0) {
       this.p.imageMode(this.p.CENTER)
       this.p.image(this.state.ballImage, this.x, this.y, BALL_SIZE, BALL_SIZE)
     } else {

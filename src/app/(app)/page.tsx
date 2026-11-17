@@ -1,4 +1,3 @@
-import { Suspense } from "react"
 import type { Metadata } from "next"
 import type { ProfilePage, WithContext } from "schema-dts"
 

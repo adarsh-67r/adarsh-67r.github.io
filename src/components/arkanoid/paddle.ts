@@ -55,7 +55,7 @@ export class Paddle {
   }
 
   show() {
-    if (this.state.paddleImage && (this.state.paddleImage as any).width > 0) {
+    if (this.state.paddleImage && this.state.paddleImage.width > 0) {
       this.p.imageMode(this.p.CORNER)
       this.p.image(
         this.state.paddleImage,
