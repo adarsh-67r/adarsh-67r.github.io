@@ -1,17 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { curveNatural } from "@visx/curve"
-import { LinePath } from "@visx/shape"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { curveNatural, line, type CurveFactory } from "d3-shape"
 import { motion, useMotionTemplate, useSpring } from "motion/react"
 
 import { chartCssVars, useChart } from "./chart-context"
 import { ChartRevealClip } from "./chart-reveal-clip"
-
-// CurveFactory type - simplified version compatible with visx
-// biome-ignore lint/suspicious/noExplicitAny: d3 curve factory type
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CurveFactory = any
 
 export interface LineProps {
   /** Key in data to use for y values */
@@ -56,21 +50,38 @@ export function Line({
   const pathRef = useRef<SVGPathElement>(null)
   const [pathLength, setPathLength] = useState(0)
 
-  // Unique gradient ID for this line
-  const gradientId = useMemo(
-    () => `line-gradient-${dataKey}-${Math.random().toString(36).slice(2, 9)}`,
-    [dataKey]
+  const reactId = useId()
+  const gradientId = `line-gradient-${dataKey}-${reactId}`
+
+  // Get y value for a data point
+  const getY = useCallback(
+    (d: Record<string, unknown>) => {
+      const value = d[dataKey]
+      return typeof value === "number" ? (yScale(value) ?? 0) : 0
+    },
+    [dataKey, yScale]
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: data, innerWidth
+  const pathD = useMemo(
+    () =>
+      line<Record<string, unknown>>()
+        .x((d) => xScale(xAccessor(d)) ?? 0)
+        .y(getY)
+        .curve(curve)(data) ?? "",
+    [data, xScale, xAccessor, getY, curve]
+  )
+
+  // Re-measure whenever the drawn path changes
   useEffect(() => {
-    if (pathRef.current && animate) {
-      const len = pathRef.current.getTotalLength()
-      if (len > 0) {
-        setPathLength(len)
-      }
+    const path = pathRef.current
+    if (!(path && animate)) {
+      return
     }
-  }, [animate, data, innerWidth])
+    const len = path.getTotalLength()
+    if (len > 0) {
+      setPathLength(len)
+    }
+  }, [animate, pathD])
 
   // Binary search to find path length at a given X coordinate
   const findLengthAtX = useCallback(
@@ -97,47 +108,59 @@ export function Line({
     [pathLength]
   )
 
-  // Calculate segment bounds for highlight from either selection or hover
-  const segmentBounds = useMemo(() => {
-    if (!pathRef.current || pathLength === 0) {
-      return { startLength: 0, segmentLength: 0, isActive: false }
-    }
+  // Springs for smooth highlight animation (both offset AND segment length)
+  const springConfig = { stiffness: 180, damping: 28 }
+  const offsetSpring = useSpring(0, springConfig)
+  const segmentLengthSpring = useSpring(0, springConfig)
 
-    // Selection takes priority over hover
-    if (selection?.active) {
-      const startLength = findLengthAtX(selection.startX)
-      const endLength = findLengthAtX(selection.endX)
+  // Segment bounds come from measuring the path, so they are computed after
+  // commit and pushed straight into the springs
+  useEffect(() => {
+    const segmentBounds = getSegmentBounds()
+    offsetSpring.set(-segmentBounds.startLength)
+    segmentLengthSpring.set(segmentBounds.segmentLength)
+
+    function getSegmentBounds() {
+      if (!pathRef.current || pathLength === 0) {
+        return { startLength: 0, segmentLength: 0, isActive: false }
+      }
+
+      // Selection takes priority over hover
+      if (selection?.active) {
+        const startLength = findLengthAtX(selection.startX)
+        const endLength = findLengthAtX(selection.endX)
+        return {
+          startLength,
+          segmentLength: endLength - startLength,
+          isActive: true,
+        }
+      }
+
+      if (!tooltipData) {
+        return { startLength: 0, segmentLength: 0, isActive: false }
+      }
+
+      const idx = tooltipData.index
+      const startIdx = Math.max(0, idx - 1)
+      const endIdx = Math.min(data.length - 1, idx + 1)
+
+      const startPoint = data[startIdx]
+      const endPoint = data[endIdx]
+      if (!(startPoint && endPoint)) {
+        return { startLength: 0, segmentLength: 0, isActive: false }
+      }
+
+      const startX = xScale(xAccessor(startPoint)) ?? 0
+      const endX = xScale(xAccessor(endPoint)) ?? 0
+
+      const startLength = findLengthAtX(startX)
+      const endLength = findLengthAtX(endX)
+
       return {
         startLength,
         segmentLength: endLength - startLength,
         isActive: true,
       }
-    }
-
-    if (!tooltipData) {
-      return { startLength: 0, segmentLength: 0, isActive: false }
-    }
-
-    const idx = tooltipData.index
-    const startIdx = Math.max(0, idx - 1)
-    const endIdx = Math.min(data.length - 1, idx + 1)
-
-    const startPoint = data[startIdx]
-    const endPoint = data[endIdx]
-    if (!(startPoint && endPoint)) {
-      return { startLength: 0, segmentLength: 0, isActive: false }
-    }
-
-    const startX = xScale(xAccessor(startPoint)) ?? 0
-    const endX = xScale(xAccessor(endPoint)) ?? 0
-
-    const startLength = findLengthAtX(startX)
-    const endLength = findLengthAtX(endX)
-
-    return {
-      startLength,
-      segmentLength: endLength - startLength,
-      isActive: true,
     }
   }, [
     tooltipData,
@@ -147,35 +170,12 @@ export function Line({
     pathLength,
     xAccessor,
     findLengthAtX,
-  ])
-
-  // Springs for smooth highlight animation (both offset AND segment length)
-  const springConfig = { stiffness: 180, damping: 28 }
-  const offsetSpring = useSpring(0, springConfig)
-  const segmentLengthSpring = useSpring(0, springConfig)
-
-  // Update springs when segment bounds change
-  useEffect(() => {
-    offsetSpring.set(-segmentBounds.startLength)
-    segmentLengthSpring.set(segmentBounds.segmentLength)
-  }, [
-    segmentBounds.startLength,
-    segmentBounds.segmentLength,
     offsetSpring,
     segmentLengthSpring,
   ])
 
   // Create animated strokeDasharray using motion template
   const animatedDasharray = useMotionTemplate`${segmentLengthSpring} ${pathLength}`
-
-  // Get y value for a data point
-  const getY = useCallback(
-    (d: Record<string, unknown>) => {
-      const value = d[dataKey]
-      return typeof value === "number" ? (yScale(value) ?? 0) : 0
-    },
-    [dataKey, yScale]
-  )
 
   const isHovering = tooltipData !== null || selection?.active === true
 
@@ -216,24 +216,22 @@ export function Line({
           initial={{ opacity: 1 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
-          <LinePath
-            curve={curve}
-            data={data}
-            innerRef={pathRef}
+          <path
+            d={pathD}
+            fill="transparent"
+            ref={pathRef}
             stroke={fadeEdges ? `url(#${gradientId})` : stroke}
             strokeLinecap="round"
             strokeWidth={strokeWidth}
-            x={(d) => xScale(xAccessor(d)) ?? 0}
-            y={getY}
           />
         </motion.g>
       </g>
 
       {/* Highlight segment on hover */}
-      {showHighlight && isHovering && isLoaded && pathRef.current && (
+      {showHighlight && isHovering && isLoaded && pathD && (
         <motion.path
           animate={{ opacity: 1 }}
-          d={pathRef.current.getAttribute("d") || ""}
+          d={pathD}
           exit={{ opacity: 0 }}
           fill="none"
           initial={{ opacity: 0 }}
