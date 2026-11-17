@@ -6,7 +6,6 @@ import { useRouter } from "@bprogress/next/app"
 import { useTiks } from "@rexa-developer/tiks/react"
 import {
   AwardIcon,
-  BookmarkIcon,
   BoxIcon,
   BriefcaseBusinessIcon,
   CornerDownLeftIcon,
@@ -14,10 +13,8 @@ import {
   FileTextIcon,
   GraduationCapIcon,
   LayersIcon,
-  LineChartIcon,
   MonitorIcon,
   MoonStarIcon,
-  QuoteIcon,
   RssIcon,
   SquareDashedIcon,
   SunMediumIcon,
@@ -49,10 +46,7 @@ import { SOCIAL_LINKS } from "@/features/portfolio/data/social-links"
 import { AdarshMark, getMarkSVG } from "./adarsh-mark"
 import { getWordmarkSVG } from "./adarsh-wordmark"
 import {
-  FavouriteIcon,
-  GridViewIcon,
   NewsIcon,
-  ReactIcon,
   SearchIcon,
 } from "./icons"
 import { Button } from "./ui/button"
@@ -75,12 +69,6 @@ type CommandLinkItem = {
   shortcut?: string
   keywords?: string[]
   openInNewTab?: boolean
-}
-
-type BlockItem = {
-  name: string
-  description: string
-  categories: string[]
 }
 
 const MENU_LINKS: CommandLinkItem[] = [

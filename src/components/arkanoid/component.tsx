@@ -15,7 +15,6 @@ import { Colors, loadColors } from "./colors"
 import {
   BALL_DARK_URL,
   BALL_LIGHT_URL,
-  FONT_URL,
   PADDLE_DARK_URL,
   PADDLE_LIGHT_URL,
   SOUND_BOUNCE_URL,

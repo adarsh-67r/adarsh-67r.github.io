@@ -1,11 +1,10 @@
-import { Terminal, Braces, Cog, Monitor, FileEdit, Rocket, Palette, Zap } from "lucide-react"
+import { Terminal, Braces, Monitor, Rocket, Palette, Zap } from "lucide-react"
 
 import {
   BunIcon,
   GitHubIcon,
   JsIcon,
   OpenAIIcon,
-  ShadcnIcon,
   TsIcon,
   VercelIcon,
 } from "@/components/icons"
