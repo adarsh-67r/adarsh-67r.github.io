@@ -1,6 +1,7 @@
 import { USER } from "@/features/portfolio/data/user"
 
 import { AdarshMarkIsometric } from "./adarsh-mark-isometric"
+import { DiameterDimension } from "./diameter-dimension"
 import { FlipSentences } from "./flip-sentences"
 import { HandwrittenArrow, HandwrittenNote } from "./handwritten-note"
 import { PronounceMyName } from "./pronounce-my-name"
@@ -29,14 +30,20 @@ export function ProfileHeader() {
 
       <div className="flex flex-col sm:row-span-2 sm:row-start-1">
         <div className="screen-line-top mt-auto shrink-0 border-r border-line">
-          <div className="mx-0.5 my-0.75 flex">
-            <div className="relative size-30 rounded-full min-[24rem]:size-32 sm:size-40">
+          <div className="-mx-px my-0 flex">
+            <div className="relative z-10 size-30 rounded-full min-[24rem]:size-32 sm:size-40">
               <img
                 className="block size-full rounded-[inherit] object-cover select-none"
                 src={USER.avatar}
                 alt={USER.displayName}
               />
               <div className="pointer-events-none absolute inset-0 rounded-[inherit] inset-ring-1 inset-ring-foreground/30 dark:inset-ring-foreground/10" />
+
+              {/* The label assumes size-40 (sm+); the gutter fits it from lg. */}
+              <DiameterDimension
+                className="-z-1 hidden lg:block"
+                diameter={160}
+              />
             </div>
           </div>
         </div>
